@@ -42,10 +42,26 @@ export function rateLimit(key: string, limit: number, windowMs: number, now = Da
   return true;
 }
 
+const MAX_IP_LENGTH = 64;
+
+/**
+ * x-forwarded-for は「クライアント申告値, ..., 信頼できるプロキシが付けた実IP」の形で
+ * 末尾に実IPが積まれる(Railway 等のリバースプロキシ配下前提)。
+ * 先頭を使うと攻撃者がヘッダ偽装でレートリミットを無制限に回避できるため、末尾を採用する。
+ */
 export function getClientIp(headers: Headers): string {
   const forwarded = headers.get('x-forwarded-for');
-  if (forwarded) return forwarded.split(',')[0].trim();
-  return headers.get('x-real-ip') ?? 'unknown';
+  if (forwarded) {
+    const parts = forwarded
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const last = parts[parts.length - 1];
+    if (last) return last.slice(0, MAX_IP_LENGTH);
+  }
+  const realIp = headers.get('x-real-ip');
+  if (realIp) return realIp.trim().slice(0, MAX_IP_LENGTH);
+  return 'unknown';
 }
 
 let budgetDate = '';
@@ -83,6 +99,8 @@ export const RATE_LIMITS = {
   createEvent: { limit: 20, windowMs: 60_000 },
   /** 出欠回答 */
   respond: { limit: 30, windowMs: 60_000 },
+  /** イベント閲覧 API(名前・コメントを含む個人情報の一括取得を遅くする) */
+  readEvent: { limit: 120, windowMs: 60_000 },
 } as const;
 
 export const ERROR_MESSAGES = {

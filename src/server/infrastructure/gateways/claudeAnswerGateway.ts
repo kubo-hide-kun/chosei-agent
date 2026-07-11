@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { markSchema, type Mark } from '@/server/domain/event';
 import type { AnswerCandidate } from '@/server/domain/answerText';
 import { ANSWER_AGENT_SYSTEM_PROMPT } from '@/server/infrastructure/gateways/answerPrompt';
+import { parseClaudeJson } from '@/server/infrastructure/gateways/claudeJson';
 
 export interface AnswerParseOutcome {
   ok: boolean;
@@ -42,11 +43,9 @@ export async function parseAnswersWithClaude(
   const raw = message.content
     .filter((block): block is Anthropic.TextBlock => block.type === 'text')
     .map((block) => block.text)
-    .join('')
-    .trim()
-    .replace(/^```(?:json)?\s*|\s*```$/g, '');
+    .join('');
 
-  const parsed = JSON.parse(raw);
+  const parsed = parseClaudeJson(raw);
   if (parsed && typeof parsed === 'object' && 'error' in parsed) {
     return { ok: false, error: String(parsed.error) };
   }
