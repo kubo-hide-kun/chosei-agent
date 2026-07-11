@@ -1,6 +1,7 @@
 import { eventImportSchema, type EventImport } from '@/server/domain/event';
 import { fallbackParse } from '@/server/domain/scheduleText';
 import { parseWithClaude } from '@/server/infrastructure/gateways/claudeScheduleGateway';
+import { log } from '@/server/infrastructure/logging/logger';
 
 export interface ParseResult {
   ok: boolean;
@@ -24,7 +25,10 @@ export async function parseScheduleText(
       const outcome = await parseWithClaude(text, now, apiKey);
       return { ...outcome, engine: 'claude' };
     } catch (err) {
-      console.error('Claude での解析に失敗したためフォールバックします:', err);
+      log('warn', 'agent.claude_fallback', {
+        kind: 'schedule',
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
   }
   const result = fallbackParse(text, now);

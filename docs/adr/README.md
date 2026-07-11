@@ -20,3 +20,4 @@
 | [0005](./0005AiAnswerInput.md) | 回答側の AI エージェント入力 | Accepted |
 | [0006](./0006AbuseProtection.md) | 不正利用対策(合言葉・レートリミット・日次予算) | Accepted |
 | [0007](./0007RailwayHosting.md) | ホスティングを Railway(単一インスタンス + 永続ボリューム)にする | Accepted |
+| [0008](./0008StructuredLoggingAndAudit.md) | 構造化ログと監査イベント(stdout JSON + requestId) | Accepted |

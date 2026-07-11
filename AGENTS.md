@@ -60,6 +60,8 @@
 - 変更した分岐・防御コードにはテストを追加する(`tests/`)
 - ユーザー向け文言・エラーメッセージは日本語
 - API のバリデーションエラーは 422 で `{ error, issues }` 形式を返す
+- API ルートは必ず `withApiLogging` で包む(requestId 付き構造化ログ)。状態変更・セキュリティ事象は `reqLog.audit()` で記録し、PII(名前・コメント・入力本文)はログに残さない([docs/runbook/observability.md](./docs/runbook/observability.md))
+- logger(`infrastructure/logging`)は横断関心事として全レイヤから import してよい(container 経由不要)
 
 ## Definition of Done
 

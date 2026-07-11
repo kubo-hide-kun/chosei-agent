@@ -4,6 +4,7 @@ import type { EventRepository } from '@/server/repositories/eventRepository';
 import { NotFoundError } from '@/server/repositories/eventRepository';
 import { getEventRepository } from '@/server/infrastructure/runtime/container';
 import { parseAnswersWithClaude } from '@/server/infrastructure/gateways/claudeAnswerGateway';
+import { log } from '@/server/infrastructure/logging/logger';
 
 export interface AnswerParseResult {
   ok: boolean;
@@ -48,7 +49,10 @@ export async function parseAnswerText(
       }
       return { ok: true, name: outcome.name, comment: outcome.comment, answers, engine: 'claude' };
     } catch (err) {
-      console.error('Claude での回答解析に失敗したためフォールバックします:', err);
+      log('warn', 'agent.claude_fallback', {
+        kind: 'answers',
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 

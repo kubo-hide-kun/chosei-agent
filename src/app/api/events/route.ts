@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { eventImportSchema } from '@/server/domain/event';
 import { createEvent } from '@/server/application/useCases/events';
+import { withApiLogging } from '@/server/infrastructure/logging/withApiLogging';
 import {
   ERROR_MESSAGES,
   getClientIp,
@@ -10,12 +11,14 @@ import {
   verifyAccessKey,
 } from '@/server/infrastructure/runtime/security';
 
-export async function POST(req: NextRequest) {
+export const POST = withApiLogging<unknown>('/api/events', async (req, _ctx, reqLog) => {
+  const ip = getClientIp(req.headers);
   if (!verifyAccessKey(req.headers.get('x-access-key'))) {
+    reqLog.audit('auth.denied', { route: '/api/events', ip });
     return NextResponse.json({ error: ERROR_MESSAGES.unauthorized }, { status: 401 });
   }
-  const ip = getClientIp(req.headers);
   if (!rateLimit(`create:${ip}`, RATE_LIMITS.createEvent.limit, RATE_LIMITS.createEvent.windowMs)) {
+    reqLog.audit('rate.limited', { route: '/api/events', ip });
     return NextResponse.json({ error: ERROR_MESSAGES.rateLimited }, { status: 429 });
   }
 
@@ -28,6 +31,7 @@ export async function POST(req: NextRequest) {
   try {
     const input = eventImportSchema.parse(body);
     const { id } = createEvent(input);
+    reqLog.audit('event.created', { eventId: id, candidateCount: input.candidates.length, ip });
     return NextResponse.json({ id, url: `/events/${id}` }, { status: 201 });
   } catch (err) {
     if (err instanceof ZodError) {
@@ -41,4 +45,4 @@ export async function POST(req: NextRequest) {
     }
     throw err;
   }
-}
+});
