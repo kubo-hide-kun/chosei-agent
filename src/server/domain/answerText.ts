@@ -40,7 +40,9 @@ function polarityOf(segment: string): Mark | null {
 function referencedCandidates(segment: string, candidates: AnswerCandidate[]): AnswerCandidate[] {
   return candidates.filter((c) => {
     const [, m, d] = c.date.split('-').map(Number);
-    if (segment.includes(`${m}/${d}`) || segment.includes(`${m}月${d}日`)) return true;
+    // 前後に数字が続かない完全一致のみ(「7/24」が「7/2」にマッチしないように)
+    if (new RegExp(`(?<![\\d/])${m}/${d}(?![\\d/])`).test(segment)) return true;
+    if (new RegExp(`(?<!\\d)${m}月${d}日`).test(segment)) return true;
     if (segment.includes(c.date)) return true;
     const wd = weekdayOf(c.date);
     if (new RegExp(`${wd}曜`).test(segment)) return true;
@@ -66,6 +68,17 @@ export function fallbackParseAnswers(
     }
 
     const referenced = referencedCandidates(segment, candidates);
+
+    // 「火曜以外は無理」= 言及された候補では**ない**方に適用する。
+    // 言及された候補自体の出欠は推測で埋めず未割り当てのまま残す
+    if (referenced.length > 0 && /以外/.test(segment)) {
+      const referencedIds = new Set(referenced.map((c) => c.id));
+      for (const c of candidates) {
+        if (!referencedIds.has(c.id) && !(c.id in answers)) answers[c.id] = polarity;
+      }
+      continue;
+    }
+
     if (referenced.length > 0) {
       for (const c of referenced) answers[c.id] = polarity;
       continue;

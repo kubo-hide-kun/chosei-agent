@@ -3,13 +3,31 @@ import { z } from 'zod';
 const dateRe = /^\d{4}-\d{2}-\d{2}$/;
 const timeRe = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+/** カレンダー上に実在する日付か(2026-02-31 のようなロールオーバーを弾く) */
+export function isRealDate(date: string): boolean {
+  if (!dateRe.test(date)) return false;
+  const [y, m, d] = date.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+}
+
+const START_BEFORE_END_MESSAGE = 'end は start より後の時刻にしてください';
+
 /** 候補日時オブジェクト形式 */
-export const candidateObjectSchema = z.object({
-  date: z.string().regex(dateRe, 'date は YYYY-MM-DD 形式で指定してください'),
-  start: z.string().regex(timeRe, 'start は HH:mm 形式で指定してください').optional(),
-  end: z.string().regex(timeRe, 'end は HH:mm 形式で指定してください').optional(),
-  label: z.string().max(100).optional(),
-});
+export const candidateObjectSchema = z
+  .object({
+    date: z
+      .string()
+      .regex(dateRe, 'date は YYYY-MM-DD 形式で指定してください')
+      .refine(isRealDate, '実在する日付を指定してください'),
+    start: z.string().regex(timeRe, 'start は HH:mm 形式で指定してください').optional(),
+    end: z.string().regex(timeRe, 'end は HH:mm 形式で指定してください').optional(),
+    label: z.string().max(100).optional(),
+  })
+  .refine((c) => !c.start || !c.end || c.start < c.end, {
+    message: START_BEFORE_END_MESSAGE,
+    path: ['end'],
+  });
 
 /**
  * 候補日時の文字列ショートハンド。
@@ -20,7 +38,14 @@ export const candidateStringSchema = z
   .regex(
     /^\d{4}-\d{2}-\d{2}( ([01]\d|2[0-3]):[0-5]\d(-([01]\d|2[0-3]):[0-5]\d)?)?$/,
     '候補は "YYYY-MM-DD"、"YYYY-MM-DD HH:mm"、"YYYY-MM-DD HH:mm-HH:mm" のいずれかの形式で指定してください',
-  );
+  )
+  .refine((s) => isRealDate(s.split(' ')[0]), '実在する日付を指定してください')
+  .refine((s) => {
+    const time = s.split(' ')[1];
+    if (!time || !time.includes('-')) return true;
+    const [start, end] = time.split('-');
+    return start < end;
+  }, START_BEFORE_END_MESSAGE);
 
 export const candidateSchema = z.union([candidateObjectSchema, candidateStringSchema]);
 

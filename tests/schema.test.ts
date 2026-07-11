@@ -39,6 +39,40 @@ describe('eventImportSchema', () => {
     ).toThrow();
   });
 
+  it('実在しない日付を拒否する(ロールオーバーさせない)', () => {
+    expect(() =>
+      eventImportSchema.parse({ title: 'x', candidates: [{ date: '2026-02-31' }] }),
+    ).toThrow();
+    expect(() =>
+      eventImportSchema.parse({ title: 'x', candidates: ['2026-13-01'] }),
+    ).toThrow();
+    // うるう年は許容
+    expect(() =>
+      eventImportSchema.parse({ title: 'x', candidates: ['2028-02-29'] }),
+    ).not.toThrow();
+    expect(() =>
+      eventImportSchema.parse({ title: 'x', candidates: ['2026-02-29'] }),
+    ).toThrow();
+  });
+
+  it('start >= end を拒否する', () => {
+    expect(() =>
+      eventImportSchema.parse({
+        title: 'x',
+        candidates: [{ date: '2026-07-21', start: '21:00', end: '19:00' }],
+      }),
+    ).toThrow();
+    expect(() =>
+      eventImportSchema.parse({ title: 'x', candidates: ['2026-07-21 21:00-19:00'] }),
+    ).toThrow();
+    expect(() =>
+      eventImportSchema.parse({
+        title: 'x',
+        candidates: [{ date: '2026-07-21', start: '19:00', end: '19:00' }],
+      }),
+    ).toThrow();
+  });
+
   it('candidates 空配列を拒否する', () => {
     expect(() => eventImportSchema.parse({ title: 'x', candidates: [] })).toThrow();
   });

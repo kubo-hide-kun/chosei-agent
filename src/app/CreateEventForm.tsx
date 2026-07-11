@@ -18,12 +18,6 @@ const JSON_SAMPLE = `{
 
 const AI_SAMPLE = 'チームの暑気払い。来週の火曜と木曜の夜、あと 7/24 の 19時から21時 でお願いします';
 
-interface PreviewEvent {
-  title: string;
-  description?: string;
-  candidates: unknown[];
-}
-
 type Tab = 'ai' | 'json';
 
 export default function CreateEventForm() {
@@ -32,20 +26,24 @@ export default function CreateEventForm() {
   const [tab, setTab] = useState<Tab>('ai');
   const [aiText, setAiText] = useDraft('chosei-draft-ai');
   const [jsonText, setJsonText] = useDraft('chosei-draft-json');
-  const [preview, setPreview] = useState<{ event: PreviewEvent; engine?: string } | null>(null);
+  // プレビューは編集途中の不正な JSON も保持できるよう「文字列」で持つ
+  const [preview, setPreview] = useState<{ text: string; engine?: string } | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  // 入力中の JSON を即時チェックし、送信前に構文の OK / NG が分かるようにする
-  const jsonStatus = useMemo<{ state: 'empty' | 'valid' | 'invalid'; message: string }>(() => {
-    if (jsonText.trim().length === 0) return { state: 'empty', message: '' };
+  function checkJson(text: string): { state: 'empty' | 'valid' | 'invalid'; message: string } {
+    if (text.trim().length === 0) return { state: 'empty', message: '' };
     try {
-      JSON.parse(jsonText);
+      JSON.parse(text);
       return { state: 'valid', message: '✓ JSON の構文は有効です' };
     } catch (e) {
       return { state: 'invalid', message: `JSON の構文エラー: ${(e as Error).message}` };
     }
-  }, [jsonText]);
+  }
+
+  // 入力中の JSON を即時チェックし、送信前に構文の OK / NG が分かるようにする
+  const jsonStatus = useMemo(() => checkJson(jsonText), [jsonText]);
+  const previewStatus = useMemo(() => checkJson(preview?.text ?? ''), [preview]);
 
   function switchTab(next: Tab) {
     setTab(next);
@@ -68,7 +66,7 @@ export default function CreateEventForm() {
         setError(data.error ?? '解析に失敗しました');
         return;
       }
-      setPreview({ event: data.event, engine: data.engine });
+      setPreview({ text: JSON.stringify(data.event, null, 2), engine: data.engine });
     } catch {
       setError('通信に失敗しました。時間をおいて再度お試しください。');
     } finally {
@@ -201,23 +199,24 @@ export default function CreateEventForm() {
                 <textarea
                   id="preview-json"
                   className="sp-textarea"
-                  value={JSON.stringify(preview.event, null, 2)}
-                  onChange={(e) => {
-                    try {
-                      setPreview({ ...preview, event: JSON.parse(e.target.value) });
-                      setError('');
-                    } catch {
-                      setError('編集中の JSON が不正です(修正されるまで作成できません)');
-                    }
-                  }}
+                  value={preview.text}
+                  onChange={(e) => setPreview({ ...preview, text: e.target.value })}
                   rows={12}
+                  aria-describedby="preview-json-status"
                 />
+                <p
+                  id="preview-json-status"
+                  className={previewStatus.state === 'valid' ? 'sp-valid' : 'sp-invalid'}
+                  aria-live="polite"
+                >
+                  {previewStatus.message}
+                </p>
               </div>
               <button
                 type="button"
                 className="sp-button sp-button--contained"
-                onClick={() => void createEvent(preview.event)}
-                disabled={busy}
+                onClick={() => void createEvent(JSON.parse(preview.text))}
+                disabled={busy || previewStatus.state !== 'valid'}
               >
                 この内容でイベントを作成 →
               </button>
@@ -280,8 +279,9 @@ export default function CreateEventForm() {
                 </li>
               </ul>
               <p>
-                日付は <code className="sp-code">YYYY-MM-DD</code>、時刻は{' '}
+                日付は <code className="sp-code">YYYY-MM-DD</code>(実在する日付のみ)、時刻は{' '}
                 <code className="sp-code">HH:mm</code>(24 時間表記)で指定してください。
+                終了時刻は開始時刻より後にしてください(深夜跨ぎは未対応)。
                 形式に誤りがある場合は、どのフィールドが問題かをエラーで表示します。
               </p>
             </div>

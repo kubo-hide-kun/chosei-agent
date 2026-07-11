@@ -54,11 +54,13 @@ let budgetUsed = 0;
 /**
  * Claude 呼び出しの 1 日予算を 1 消費する。true = まだ予算内。
  * 超過しても API は落とさず、呼び出し側でルールベースに縮退する。
+ * 日付の区切りは JST(0:00 リセット)。
  */
 export function consumeClaudeBudget(now = new Date()): boolean {
   const limit = Number(process.env.CHOSEI_AGENT_DAILY_LIMIT ?? '200');
   if (!Number.isFinite(limit) || limit <= 0) return false;
-  const today = now.toISOString().slice(0, 10);
+  const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+  const today = new Date(now.getTime() + JST_OFFSET_MS).toISOString().slice(0, 10);
   if (budgetDate !== today) {
     budgetDate = today;
     budgetUsed = 0;

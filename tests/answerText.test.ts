@@ -34,6 +34,29 @@ describe('fallbackParseAnswers', () => {
     expect(result).toEqual({ answers: { c2: 'ng' } });
   });
 
+  it('M/D は部分一致させない(7/24 が 7/2 を巻き込まない)', () => {
+    const candidates: AnswerCandidate[] = [
+      { id: 'a', date: '2026-07-02', label: '7/2(木)' },
+      { id: 'b', date: '2026-07-24', label: '7/24(金)' },
+    ];
+    expect(fallbackParseAnswers('7/24は無理です', candidates)).toEqual({
+      answers: { b: 'ng' },
+    });
+    expect(fallbackParseAnswers('7/2は行けます', candidates)).toEqual({
+      answers: { a: 'ok' },
+    });
+  });
+
+  it('「◯曜以外は無理」は言及されなかった候補に適用し、言及候補は未割り当てのまま残す', () => {
+    const result = fallbackParseAnswers('火曜以外は無理です', CANDIDATES);
+    expect(result).toEqual({ answers: { c2: 'ng', c3: 'ng' } });
+  });
+
+  it('「7/24以外はOK」も同様に反転して適用する', () => {
+    const result = fallbackParseAnswers('7/24以外はOKです', CANDIDATES);
+    expect(result).toEqual({ answers: { c1: 'ok', c3: 'ok' } });
+  });
+
   it('出欠が読み取れない入力はエラーを返す', () => {
     const result = fallbackParseAnswers('よろしくお願いします', CANDIDATES);
     expect('error' in result).toBe(true);

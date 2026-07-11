@@ -20,9 +20,9 @@ export default function EventView({ event }: { event: EventDetail }) {
   const [copied, setCopied] = useState(false);
   const [name, setName] = useState('');
   const [comment, setComment] = useState('');
-  const [answers, setAnswers] = useState<Record<string, Mark>>(() =>
-    Object.fromEntries(event.candidates.map((c) => [c.id, 'ok' as Mark])),
-  );
+  // 初期値は「未選択」。既定で ◯ を付けると、確認せず送信したときに
+  // 行けない日へ ◯ が付く事故になるため、参加者の明示的な選択だけを記録する
+  const [answers, setAnswers] = useState<Record<string, Mark>>({});
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [accessKey, setAccessKey] = useAccessKey();
@@ -69,6 +69,7 @@ export default function EventView({ event }: { event: EventDetail }) {
       }
       setName('');
       setComment('');
+      setAnswers({});
       setAiAnswerText('');
       setAiAnswerNote('');
       setSubmitted(true);
@@ -235,6 +236,7 @@ export default function EventView({ event }: { event: EventDetail }) {
         <h2 className="sp-heading-2">出欠を回答する</h2>
         <p className="sp-help">
           名前を入力し、候補ごとに ◯ / △ / ✕ を選んで送信してください。送信するとすぐ上の集計表に反映されます。
+          選択しなかった候補は「回答なし(-)」として記録されます。
           回答の修正は未対応のため、間違えた場合は幹事に連絡してください。
         </p>
 
@@ -360,7 +362,7 @@ export default function EventView({ event }: { event: EventDetail }) {
           <button
             type="submit"
             className="sp-button sp-button--contained"
-            disabled={busy || name.trim().length === 0}
+            disabled={busy || name.trim().length === 0 || Object.keys(answers).length === 0}
           >
             {busy ? '送信中…' : '回答を送信 →'}
           </button>
