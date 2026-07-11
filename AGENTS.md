@@ -6,6 +6,7 @@
 ## First Read
 
 - まず [README.md](./README.md) を確認する
+- 設計判断(ADR)は [docs/adr/README.md](./docs/adr/README.md)(index が一覧の正本)から必要分だけ参照する
 - どの領域を触るかが決まったら、毎回 repo 全体を読み直さず [docs/steering/repo-map.md](./docs/steering/repo-map.md)(領域→入口の地図)から最短で入口に入る
 - 入稿 JSON の仕様は [docs/JSON_FORMAT.md](./docs/JSON_FORMAT.md) が正本
 - AI エージェント(候補日時抽出)のシステムプロンプトは [docs/SYSTEM_PROMPT.md](./docs/SYSTEM_PROMPT.md) が正本(実装 `src/server/infrastructure/gateways/schedulePrompt.ts` と必ず同期)
@@ -66,5 +67,7 @@
 - 変更した分岐と防御コードには対応テストを追加する
 - 入稿 JSON の形式を変えたら `docs/JSON_FORMAT.md` を、エージェントのプロンプトを変えたら `docs/SYSTEM_PROMPT.md` と `src/server/infrastructure/gateways/schedulePrompt.ts` の両方を同期する(正本のズレを作らない)
 - UI を作る / 変えたなら「UI を作ったら必須の確認」(崩れチェック + UX レビュー)を満たす。これは適応で省略できない
+- 設計・仕様の判断が増えたら [docs/adr/](./docs/adr/README.md) に起票する(採番は既存の続き。index にも追記)
+- CI(typecheck + 全テスト + ビルド)が基準線の関門([ADR 0004](./docs/adr/0004CiGate.md))。手元は絞った確認で速く回してよい
 - 「テストが通った」で閉じず、理解確認(なぜ / データの流れ / 失敗時挙動 / 戻し方)を満たす。説明できない点は捏造せず「未確認」として報告に残す
 - commit / push はユーザーが明示したときのみ。PR はユーザーが明示したときだけ作る
