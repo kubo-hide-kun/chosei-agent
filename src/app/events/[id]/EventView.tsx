@@ -1,9 +1,11 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import type { EventDetail } from '@/server/repositories/eventRepository';
 import type { Mark } from '@/server/domain/event';
+import AccessKeyInput from '../../AccessKeyInput';
 import { useAccessKey } from '../../useAccessKey';
 
 const MARK_LABEL: Record<Mark, string> = { ok: '◯', maybe: '△', ng: '✕' };
@@ -27,6 +29,7 @@ export default function EventView({ event }: { event: EventDetail }) {
   const [aiAnswerText, setAiAnswerText] = useState('');
   const [aiAnswerNote, setAiAnswerNote] = useState('');
   const [aiBusy, setAiBusy] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     setShareUrl(`${window.location.origin}/events/${event.id}`);
@@ -52,6 +55,7 @@ export default function EventView({ event }: { event: EventDetail }) {
     e.preventDefault();
     setBusy(true);
     setError('');
+    setSubmitted(false);
     try {
       const res = await fetch(`/api/events/${event.id}/responses`, {
         method: 'POST',
@@ -65,6 +69,9 @@ export default function EventView({ event }: { event: EventDetail }) {
       }
       setName('');
       setComment('');
+      setAiAnswerText('');
+      setAiAnswerNote('');
+      setSubmitted(true);
       router.refresh();
     } catch {
       setError('通信に失敗しました。時間をおいて再度お試しください。');
@@ -118,24 +125,49 @@ export default function EventView({ event }: { event: EventDetail }) {
 
   return (
     <>
+      <p className="sp-back">
+        <Link href="/">← 新しいイベントを作成する</Link>
+      </p>
       <section className="sp-card">
         <h1 className="sp-heading-1">{event.title}</h1>
         {event.description && <p className="sp-text-sub">{event.description}</p>}
         {justCreated && (
           <div className="sp-note">
-            イベントを作成しました。以下の URL を参加者に共有してください。
+            イベントを作成しました。<strong>次にすること:</strong> 以下の URL
+            をコピーして、参加者にチャットやメールで共有してください。
           </div>
         )}
         <div className="sp-share">
           <input className="sp-input" value={shareUrl} readOnly aria-label="共有URL" />
-          <button type="button" className="sp-button sp-button--outlined" onClick={copyShareUrl}>
-            {copied ? 'コピーしました' : 'URL をコピー'}
+          <button
+            type="button"
+            className={`sp-button ${justCreated ? 'sp-button--contained' : 'sp-button--outlined'}`}
+            onClick={copyShareUrl}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              aria-hidden="true"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="9" y="9" width="13" height="13" rx="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+            {copied ? 'コピーしました ✓' : 'URL をコピー'}
           </button>
         </div>
       </section>
 
       <section className="sp-card">
-        <h2 className="sp-heading-2">回答状況</h2>
+        <h2 className="sp-heading-2">
+          回答状況
+          <span className="sp-count">{event.responses.length} 人が回答済み</span>
+        </h2>
         <p className="sp-help">
           ◯ = 参加できる / △ = 調整すれば参加できる / ✕ = 参加できない。
           ★ が付いた行は現時点の最有力候補です(◯ = 2 点、△ = 1 点で採点した最高得点の候補)。
@@ -207,9 +239,22 @@ export default function EventView({ event }: { event: EventDetail }) {
         </p>
 
         <div className="sp-ai-answer">
-          <label className="sp-label" htmlFor="ai-answer-text">
-            AI エージェントで回答(自然文から ◯/△/✕ を自動入力)
-          </label>
+          <div className="sp-label-row">
+            <label className="sp-label" htmlFor="ai-answer-text">
+              AI エージェントで回答(自然文から ◯/△/✕ を自動入力)
+            </label>
+            <button
+              type="button"
+              className="sp-textbtn"
+              onClick={() =>
+                setAiAnswerText(
+                  `${event.candidates[0]?.label ?? ''} は行けます、それ以外は微妙です`,
+                )
+              }
+            >
+              例文を入れる
+            </button>
+          </div>
           <textarea
             id="ai-answer-text"
             className="sp-textarea sp-textarea--plain"
@@ -219,14 +264,12 @@ export default function EventView({ event }: { event: EventDetail }) {
             onChange={(e) => setAiAnswerText(e.target.value)}
           />
           <div className="sp-ai-answer-controls">
-            <input
-              className="sp-input"
-              type="password"
+            <AccessKeyInput
+              id="answer-access-key"
               value={accessKey}
-              onChange={(e) => setAccessKey(e.target.value)}
-              autoComplete="off"
+              onChange={setAccessKey}
               placeholder="合言葉(設定されている場合)"
-              aria-label="合言葉(アクセスキー)"
+              ariaLabel="合言葉(アクセスキー)"
             />
             <button
               type="button"
@@ -309,12 +352,17 @@ export default function EventView({ event }: { event: EventDetail }) {
               {error}
             </p>
           )}
+          {submitted && (
+            <div className="sp-note" role="status">
+              回答を送信しました。上の集計表に反映されています。ありがとうございました!
+            </div>
+          )}
           <button
             type="submit"
             className="sp-button sp-button--contained"
             disabled={busy || name.trim().length === 0}
           >
-            回答を送信
+            {busy ? '送信中…' : '回答を送信 →'}
           </button>
         </form>
       </section>

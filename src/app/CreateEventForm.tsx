@@ -1,10 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import AccessKeyInput from './AccessKeyInput';
 import { useAccessKey } from './useAccessKey';
+import { useDraft } from './useDraft';
 
-const JSON_PLACEHOLDER = `{
+const JSON_SAMPLE = `{
   "title": "新年会",
   "description": "会場は渋谷を予定しています",
   "candidates": [
@@ -14,7 +16,7 @@ const JSON_PLACEHOLDER = `{
   ]
 }`;
 
-const AI_PLACEHOLDER = `例: チームの暑気払い。来週の火曜と木曜の夜、あと 7/24 の 19時から21時 でお願いします`;
+const AI_SAMPLE = 'チームの暑気払い。来週の火曜と木曜の夜、あと 7/24 の 19時から21時 でお願いします';
 
 interface PreviewEvent {
   title: string;
@@ -28,11 +30,22 @@ export default function CreateEventForm() {
   const router = useRouter();
   const [accessKey, setAccessKey] = useAccessKey();
   const [tab, setTab] = useState<Tab>('ai');
-  const [aiText, setAiText] = useState('');
-  const [jsonText, setJsonText] = useState('');
+  const [aiText, setAiText] = useDraft('chosei-draft-ai');
+  const [jsonText, setJsonText] = useDraft('chosei-draft-json');
   const [preview, setPreview] = useState<{ event: PreviewEvent; engine?: string } | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  // 入力中の JSON を即時チェックし、送信前に構文の OK / NG が分かるようにする
+  const jsonStatus = useMemo<{ state: 'empty' | 'valid' | 'invalid'; message: string }>(() => {
+    if (jsonText.trim().length === 0) return { state: 'empty', message: '' };
+    try {
+      JSON.parse(jsonText);
+      return { state: 'valid', message: '✓ JSON の構文は有効です' };
+    } catch (e) {
+      return { state: 'invalid', message: `JSON の構文エラー: ${(e as Error).message}` };
+    }
+  }, [jsonText]);
 
   function switchTab(next: Tab) {
     setTab(next);
@@ -80,6 +93,9 @@ export default function CreateEventForm() {
         setError((data.error ?? 'イベントの作成に失敗しました') + detail);
         return;
       }
+      // 作成に成功したら下書きを消す
+      setAiText('');
+      setJsonText('');
       router.push(data.url + '?created=1');
     } catch {
       setError('通信に失敗しました。時間をおいて再度お試しください。');
@@ -106,13 +122,10 @@ export default function CreateEventForm() {
         <label className="sp-label" htmlFor="access-key">
           合言葉(アクセスキー)
         </label>
-        <input
+        <AccessKeyInput
           id="access-key"
-          className="sp-input"
-          type="password"
           value={accessKey}
-          onChange={(e) => setAccessKey(e.target.value)}
-          autoComplete="off"
+          onChange={setAccessKey}
           placeholder="管理者から共有された合言葉"
         />
         <p className="sp-help">
@@ -129,6 +142,7 @@ export default function CreateEventForm() {
           onClick={() => switchTab('ai')}
         >
           AI エージェントで入稿
+          <span className="sp-badge-reco">おすすめ</span>
         </button>
         <button
           type="button"
@@ -144,20 +158,25 @@ export default function CreateEventForm() {
       {tab === 'ai' && (
         <div>
           <div className="sp-field">
-            <label className="sp-label" htmlFor="ai-text">
-              イベントの内容と候補日程を自然文で
-            </label>
+            <div className="sp-label-row">
+              <label className="sp-label" htmlFor="ai-text">
+                イベントの内容と候補日程を自然文で
+              </label>
+              <button type="button" className="sp-textbtn" onClick={() => setAiText(AI_SAMPLE)}>
+                例文を入れる
+              </button>
+            </div>
             <textarea
               id="ai-text"
               className="sp-textarea sp-textarea--plain"
-              placeholder={AI_PLACEHOLDER}
+              placeholder={`例: ${AI_SAMPLE}`}
               value={aiText}
               onChange={(e) => setAiText(e.target.value)}
             />
             <p className="sp-help">
               「来週の◯曜」「平日」「週末」「7/24」「19時から21時」などの表現が使えます。
               「夜」は 19:00〜21:00、「昼」は 12:00〜13:00 と解釈されます。
-              解析結果は作成前にプレビューで編集できます。
+              解析結果は作成前にプレビューで編集できます。入力途中の内容はこの端末に自動保存されます。
             </p>
           </div>
           <button
@@ -200,7 +219,7 @@ export default function CreateEventForm() {
                 onClick={() => void createEvent(preview.event)}
                 disabled={busy}
               >
-                この内容でイベントを作成
+                この内容でイベントを作成 →
               </button>
             </div>
           )}
@@ -210,18 +229,31 @@ export default function CreateEventForm() {
       {tab === 'json' && (
         <div>
           <div className="sp-field">
-            <label className="sp-label" htmlFor="json-text">
-              入稿 JSON(<code className="sp-code">title</code> と{' '}
-              <code className="sp-code">candidates</code> が必須)
-            </label>
+            <div className="sp-label-row">
+              <label className="sp-label" htmlFor="json-text">
+                入稿 JSON(<code className="sp-code">title</code> と{' '}
+                <code className="sp-code">candidates</code> が必須)
+              </label>
+              <button type="button" className="sp-textbtn" onClick={() => setJsonText(JSON_SAMPLE)}>
+                サンプルを入れる
+              </button>
+            </div>
             <textarea
               id="json-text"
               className="sp-textarea"
-              placeholder={JSON_PLACEHOLDER}
+              placeholder={JSON_SAMPLE}
               value={jsonText}
               onChange={(e) => setJsonText(e.target.value)}
               rows={14}
+              aria-describedby="json-status"
             />
+            <p
+              id="json-status"
+              className={jsonStatus.state === 'valid' ? 'sp-valid' : 'sp-invalid'}
+              aria-live="polite"
+            >
+              {jsonStatus.message}
+            </p>
           </div>
           <details className="sp-details">
             <summary>入稿 JSON の書き方(クリックで開く)</summary>
@@ -258,9 +290,9 @@ export default function CreateEventForm() {
             type="button"
             className="sp-button sp-button--contained"
             onClick={handleJsonSubmit}
-            disabled={busy || jsonText.trim().length === 0}
+            disabled={busy || jsonStatus.state !== 'valid'}
           >
-            イベントを作成
+            イベントを作成 →
           </button>
         </div>
       )}

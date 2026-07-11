@@ -38,6 +38,7 @@
   --color-text-low-emphasis: var(--gray-60-alpha);
   --color-text-high-emphasis-inverse: var(--white-100);
   --color-text-accent-primary: var(--primary-green-80);
+  --color-text-positive: var(--primary-green-80);
   --color-text-caution: var(--caution-red-100);
   --color-surface-caution-light: var(--caution-red-5-alpha);
   --color-border-medium-emphasis: var(--gray-30-alpha);
@@ -461,6 +462,116 @@ a {
 .sp-details-body li {
   margin-bottom: 6px;
   overflow-wrap: anywhere;
+}
+
+.sp-badge-reco {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--color-text-high-emphasis-inverse);
+  background: var(--color-surface-accent-primary);
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-left: 6px;
+  vertical-align: 1px;
+}
+
+.sp-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sp-textbtn {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text-accent-primary);
+  cursor: pointer;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.sp-textbtn:hover {
+  background: var(--color-hover-outlined-button);
+  text-decoration: underline;
+}
+
+.sp-textbtn:focus-visible {
+  outline: 2px solid var(--color-focus-clarity);
+  outline-offset: 1px;
+}
+
+.sp-valid {
+  color: var(--color-text-positive, var(--color-text-accent-primary));
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 6px 0 0;
+  min-height: 1.2em;
+}
+
+.sp-invalid {
+  color: var(--color-text-caution);
+  font-size: 0.8125rem;
+  margin: 6px 0 0;
+  min-height: 1.2em;
+  overflow-wrap: anywhere;
+}
+
+.sp-key-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 200px;
+}
+
+.sp-key-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--color-text-low-emphasis);
+  pointer-events: none;
+}
+
+.sp-key-input {
+  padding-left: 36px;
+  padding-right: 56px;
+  width: 100%;
+}
+
+.sp-key-field .sp-textbtn {
+  position: absolute;
+  right: 6px;
+}
+
+.sp-count {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--color-text-medium-emphasis);
+  margin-left: 10px;
+}
+
+.sp-back {
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+}
+
+.sp-back a {
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.sp-back a:hover {
+  text-decoration: underline;
+}
+
+.sp-button svg {
+  flex-shrink: 0;
 }
 
 .sp-ai-answer {
