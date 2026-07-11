@@ -45,6 +45,15 @@ npm run dev                  # http://localhost:3000
 | `CHOSEI_ACCESS_KEY` | 本番推奨 | 合言葉。設定するとイベント作成・AI 解析に `x-access-key` ヘッダが必須になる |
 | `CHOSEI_AGENT_DAILY_LIMIT` | - | Claude 呼び出しの 1 日上限(既定: 200)。超過後はルールベースに自動縮退 |
 
+## デプロイ(Railway)
+
+Railway + 永続ボリュームでホスティングする(判断は [ADR 0007](docs/adr/0007RailwayHosting.md))。
+セットアップ・運用手順は [docs/runbook/railway-deploy.md](docs/runbook/railway-deploy.md) を参照。
+
+```bash
+docker build -t chosei-agent .   # ローカルでのビルド確認
+```
+
 ## アーキテクチャ
 
 - **Next.js 15 (App Router) + TypeScript**
