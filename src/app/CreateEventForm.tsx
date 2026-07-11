@@ -134,6 +134,11 @@ export default function CreateEventForm() {
               value={aiText}
               onChange={(e) => setAiText(e.target.value)}
             />
+            <p className="sp-help">
+              「来週の◯曜」「平日」「週末」「7/24」「19時から21時」などの表現が使えます。
+              「夜」は 19:00〜21:00、「昼」は 12:00〜13:00 と解釈されます。
+              解析結果は作成前にプレビューで編集できます。
+            </p>
           </div>
           <button
             type="button"
@@ -198,12 +203,37 @@ export default function CreateEventForm() {
               rows={14}
             />
           </div>
-          <p className="sp-text-sub">
-            candidates には <code className="sp-code">{'{ "date", "start", "end", "label" }'}</code>{' '}
-            形式のオブジェクトか、
-            <code className="sp-code">&quot;YYYY-MM-DD HH:mm-HH:mm&quot;</code>{' '}
-            形式の文字列を混在して指定できます。
-          </p>
+          <details className="sp-details">
+            <summary>入稿 JSON の書き方(クリックで開く)</summary>
+            <div className="sp-details-body">
+              <p>
+                <code className="sp-code">title</code>(イベント名)と{' '}
+                <code className="sp-code">candidates</code>(候補日時、最大 100 件)が必須です。
+                <code className="sp-code">description</code>(補足説明)は任意です。
+              </p>
+              <p>candidates の各要素は、次の 2 形式を混在して指定できます。</p>
+              <ul>
+                <li>
+                  オブジェクト形式:{' '}
+                  <code className="sp-code">
+                    {'{ "date": "2026-07-21", "start": "19:00", "end": "21:00" }'}
+                  </code>
+                  (<code className="sp-code">start</code> / <code className="sp-code">end</code>{' '}
+                  は省略可。<code className="sp-code">label</code> で表示名も指定可)
+                </li>
+                <li>
+                  文字列形式: <code className="sp-code">&quot;2026-07-25&quot;</code> /{' '}
+                  <code className="sp-code">&quot;2026-07-25 19:00&quot;</code> /{' '}
+                  <code className="sp-code">&quot;2026-07-25 19:00-21:00&quot;</code>
+                </li>
+              </ul>
+              <p>
+                日付は <code className="sp-code">YYYY-MM-DD</code>、時刻は{' '}
+                <code className="sp-code">HH:mm</code>(24 時間表記)で指定してください。
+                形式に誤りがある場合は、どのフィールドが問題かをエラーで表示します。
+              </p>
+            </div>
+          </details>
           <button
             type="button"
             className="sp-button sp-button--contained"

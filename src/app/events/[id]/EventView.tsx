@@ -98,6 +98,10 @@ export default function EventView({ event }: { event: EventDetail }) {
 
       <section className="sp-card">
         <h2 className="sp-heading-2">回答状況</h2>
+        <p className="sp-help">
+          ◯ = 参加できる / △ = 調整すれば参加できる / ✕ = 参加できない。
+          ★ が付いた行は現時点の最有力候補です(◯ = 2 点、△ = 1 点で採点した最高得点の候補)。
+        </p>
         <div className="sp-table-wrap">
           <table className="sp-table">
             <thead>
@@ -159,6 +163,10 @@ export default function EventView({ event }: { event: EventDetail }) {
 
       <section className="sp-card">
         <h2 className="sp-heading-2">出欠を回答する</h2>
+        <p className="sp-help">
+          名前を入力し、候補ごとに ◯ / △ / ✕ を選んで送信してください。送信するとすぐ上の集計表に反映されます。
+          回答の修正は未対応のため、間違えた場合は幹事に連絡してください。
+        </p>
         <form onSubmit={handleSubmit}>
           <div className="sp-field">
             <label className="sp-label" htmlFor="respondent-name">
