@@ -2,8 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { eventImportSchema } from '@/server/domain/event';
 import { createEvent } from '@/server/application/useCases/events';
+import {
+  ERROR_MESSAGES,
+  getClientIp,
+  RATE_LIMITS,
+  rateLimit,
+  verifyAccessKey,
+} from '@/server/infrastructure/runtime/security';
 
 export async function POST(req: NextRequest) {
+  if (!verifyAccessKey(req.headers.get('x-access-key'))) {
+    return NextResponse.json({ error: ERROR_MESSAGES.unauthorized }, { status: 401 });
+  }
+  const ip = getClientIp(req.headers);
+  if (!rateLimit(`create:${ip}`, RATE_LIMITS.createEvent.limit, RATE_LIMITS.createEvent.windowMs)) {
+    return NextResponse.json({ error: ERROR_MESSAGES.rateLimited }, { status: 429 });
+  }
+
   let body: unknown;
   try {
     body = await req.json();

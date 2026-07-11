@@ -17,3 +17,5 @@
 | [0002](./0002JsonImportFormat.md) | 入稿 JSON フォーマットの設計 | Accepted |
 | [0003](./0003AgentParsingStrategy.md) | AI エージェントの解析戦略(Claude + ルールベースフォールバック) | Accepted |
 | [0004](./0004CiGate.md) | CI ゲート(typecheck + テスト + ビルド) | Accepted |
+| [0005](./0005AiAnswerInput.md) | 回答側の AI エージェント入力 | Accepted |
+| [0006](./0006AbuseProtection.md) | 不正利用対策(合言葉・レートリミット・日次予算) | Accepted |

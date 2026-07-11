@@ -11,7 +11,9 @@
 - **AI エージェント入稿**: 「来週の火曜と木曜の夜」のような自然文から候補日時 JSON を自動生成
   - `ANTHROPIC_API_KEY` があれば Claude API、なければルールベースのフォールバックで解析
 - **出欠回答**: 共有 URL から参加者が候補ごとに ◯ / △ / ✕ で回答
+- **AI エージェント回答**: 「火曜は行けます、金曜は無理」のような自然文から出欠を自動入力(送信前に確認・修正可)
 - **集計表示**: 調整さん風のマトリクス表示。最有力候補(◯=2点, △=1点)をハイライト
+- **不正利用対策**: 合言葉(アクセスキー)・IP レートリミット・Claude 呼び出しの日次上限([ADR 0006](docs/adr/0006AbuseProtection.md))
 
 ## 使い方
 
@@ -40,6 +42,8 @@ npm run dev                  # http://localhost:3000
 | `ANTHROPIC_API_KEY` | - | 未設定の場合、自然文解析はルールベースにフォールバック |
 | `CHOSEI_AGENT_MODEL` | - | 使用モデル(既定: `claude-sonnet-5`) |
 | `CHOSEI_DATA_DIR` | - | SQLite の保存先(既定: `./data`) |
+| `CHOSEI_ACCESS_KEY` | 本番推奨 | 合言葉。設定するとイベント作成・AI 解析に `x-access-key` ヘッダが必須になる |
+| `CHOSEI_AGENT_DAILY_LIMIT` | - | Claude 呼び出しの 1 日上限(既定: 200)。超過後はルールベースに自動縮退 |
 
 ## アーキテクチャ
 
@@ -57,4 +61,8 @@ npm run dev                  # http://localhost:3000
 | `POST` | `/api/events` | イベント作成(入稿 JSON を受け付け) |
 | `GET` | `/api/events/:id` | イベント詳細・回答一覧 |
 | `POST` | `/api/events/:id/responses` | 出欠回答の登録 |
-| `POST` | `/api/agent/parse` | 自然文 → 入稿 JSON 変換 |
+| `POST` | `/api/agent/parse` | 自然文 → 入稿 JSON 変換(要合言葉) |
+| `POST` | `/api/events/:id/agent/parse-answers` | 出欠の自然文 → 候補ごとの ◯/△/✕(要合言葉) |
+
+イベント作成と AI 解析は `CHOSEI_ACCESS_KEY` 設定時に `x-access-key` ヘッダが必須(401)。
+全書き込み API に IP 単位のレートリミットあり(429)。

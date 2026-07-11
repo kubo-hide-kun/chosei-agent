@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import type { EventDetail } from '@/server/repositories/eventRepository';
 import type { Mark } from '@/server/domain/event';
+import { useAccessKey } from '../../useAccessKey';
 
 const MARK_LABEL: Record<Mark, string> = { ok: '◯', maybe: '△', ng: '✕' };
 const MARKS: Mark[] = ['ok', 'maybe', 'ng'];
@@ -22,6 +23,10 @@ export default function EventView({ event }: { event: EventDetail }) {
   );
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [accessKey, setAccessKey] = useAccessKey();
+  const [aiAnswerText, setAiAnswerText] = useState('');
+  const [aiAnswerNote, setAiAnswerNote] = useState('');
+  const [aiBusy, setAiBusy] = useState(false);
 
   useEffect(() => {
     setShareUrl(`${window.location.origin}/events/${event.id}`);
@@ -65,6 +70,39 @@ export default function EventView({ event }: { event: EventDetail }) {
       setError('通信に失敗しました。時間をおいて再度お試しください。');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleAiAnswer() {
+    setAiBusy(true);
+    setError('');
+    setAiAnswerNote('');
+    try {
+      const res = await fetch(`/api/events/${event.id}/agent/parse-answers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-access-key': accessKey },
+        body: JSON.stringify({ text: aiAnswerText }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? '回答の解析に失敗しました');
+        return;
+      }
+      const parsed: Record<string, Mark> = data.answers ?? {};
+      setAnswers((prev) => ({ ...prev, ...parsed }));
+      if (data.name && !name) setName(data.name);
+      if (data.comment && !comment) setComment(data.comment);
+      const count = Object.keys(parsed).length;
+      setAiAnswerNote(
+        `${count} 件の候補に回答を反映しました(エンジン: ${data.engine === 'claude' ? 'Claude' : 'ルールベース'})。` +
+          (count < event.candidates.length
+            ? ' 読み取れなかった候補は下の表で選択してから送信してください。'
+            : ' 内容を確認して送信してください。'),
+      );
+    } catch {
+      setError('通信に失敗しました。時間をおいて再度お試しください。');
+    } finally {
+      setAiBusy(false);
     }
   }
 
@@ -167,6 +205,44 @@ export default function EventView({ event }: { event: EventDetail }) {
           名前を入力し、候補ごとに ◯ / △ / ✕ を選んで送信してください。送信するとすぐ上の集計表に反映されます。
           回答の修正は未対応のため、間違えた場合は幹事に連絡してください。
         </p>
+
+        <div className="sp-ai-answer">
+          <label className="sp-label" htmlFor="ai-answer-text">
+            AI エージェントで回答(自然文から ◯/△/✕ を自動入力)
+          </label>
+          <textarea
+            id="ai-answer-text"
+            className="sp-textarea sp-textarea--plain"
+            rows={3}
+            placeholder="例: 田中です。火曜は行けます、金曜は無理、土曜は微妙。遅れるかもです"
+            value={aiAnswerText}
+            onChange={(e) => setAiAnswerText(e.target.value)}
+          />
+          <div className="sp-ai-answer-controls">
+            <input
+              className="sp-input"
+              type="password"
+              value={accessKey}
+              onChange={(e) => setAccessKey(e.target.value)}
+              autoComplete="off"
+              placeholder="合言葉(設定されている場合)"
+              aria-label="合言葉(アクセスキー)"
+            />
+            <button
+              type="button"
+              className="sp-button sp-button--outlined"
+              onClick={handleAiAnswer}
+              disabled={aiBusy || aiAnswerText.trim().length === 0}
+            >
+              {aiBusy ? '解析中…' : 'AI に読み取らせる'}
+            </button>
+          </div>
+          <p className="sp-help">
+            読み取り結果は下の表に反映されるだけで、まだ送信されません。内容を確認・修正してから「回答を送信」を押してください。
+          </p>
+          {aiAnswerNote && <div className="sp-note">{aiAnswerNote}</div>}
+        </div>
+
         <form onSubmit={handleSubmit}>
           <div className="sp-field">
             <label className="sp-label" htmlFor="respondent-name">

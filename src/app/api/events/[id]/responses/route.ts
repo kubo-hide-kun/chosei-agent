@@ -3,9 +3,19 @@ import { ZodError } from 'zod';
 import { responseSchema } from '@/server/domain/event';
 import { addResponse } from '@/server/application/useCases/events';
 import { NotFoundError, ValidationError } from '@/server/repositories/eventRepository';
+import {
+  ERROR_MESSAGES,
+  getClientIp,
+  RATE_LIMITS,
+  rateLimit,
+} from '@/server/infrastructure/runtime/security';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const ip = getClientIp(req.headers);
+  if (!rateLimit(`respond:${ip}`, RATE_LIMITS.respond.limit, RATE_LIMITS.respond.windowMs)) {
+    return NextResponse.json({ error: ERROR_MESSAGES.rateLimited }, { status: 429 });
+  }
   let body: unknown;
   try {
     body = await req.json();

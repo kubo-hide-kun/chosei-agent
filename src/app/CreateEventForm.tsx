@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useAccessKey } from './useAccessKey';
 
 const JSON_PLACEHOLDER = `{
   "title": "新年会",
@@ -25,6 +26,7 @@ type Tab = 'ai' | 'json';
 
 export default function CreateEventForm() {
   const router = useRouter();
+  const [accessKey, setAccessKey] = useAccessKey();
   const [tab, setTab] = useState<Tab>('ai');
   const [aiText, setAiText] = useState('');
   const [jsonText, setJsonText] = useState('');
@@ -45,7 +47,7 @@ export default function CreateEventForm() {
     try {
       const res = await fetch('/api/agent/parse', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-access-key': accessKey },
         body: JSON.stringify({ text: aiText }),
       });
       const data = await res.json();
@@ -67,7 +69,7 @@ export default function CreateEventForm() {
     try {
       const res = await fetch('/api/events', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-access-key': accessKey },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
@@ -100,6 +102,24 @@ export default function CreateEventForm() {
   return (
     <section className="sp-card">
       <h2 className="sp-heading-2">イベントを作成</h2>
+      <div className="sp-field">
+        <label className="sp-label" htmlFor="access-key">
+          合言葉(アクセスキー)
+        </label>
+        <input
+          id="access-key"
+          className="sp-input"
+          type="password"
+          value={accessKey}
+          onChange={(e) => setAccessKey(e.target.value)}
+          autoComplete="off"
+          placeholder="管理者から共有された合言葉"
+        />
+        <p className="sp-help">
+          管理者が合言葉を設定している場合、イベント作成と AI 解析に必要です(この端末に記憶されます)。
+          未設定の環境では空欄のまま利用できます。
+        </p>
+      </div>
       <div className="sp-tabs" role="tablist">
         <button
           type="button"

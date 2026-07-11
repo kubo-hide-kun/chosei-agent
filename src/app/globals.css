@@ -463,6 +463,29 @@ a {
   overflow-wrap: anywhere;
 }
 
+.sp-ai-answer {
+  background: var(--color-surface-accent-primary-light);
+  border-radius: var(--radius-m);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.sp-ai-answer .sp-textarea {
+  background: var(--color-surface-primary);
+}
+
+.sp-ai-answer-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.sp-ai-answer-controls .sp-input {
+  flex: 1;
+  min-width: 180px;
+}
+
 code.sp-code {
   background: var(--color-surface-secondary);
   border-radius: 4px;
