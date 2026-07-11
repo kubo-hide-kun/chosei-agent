@@ -2,8 +2,8 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import type { EventDetail } from '@/lib/store';
-import type { Mark } from '@/lib/schema';
+import type { EventDetail } from '@/server/repositories/eventRepository';
+import type { Mark } from '@/server/domain/event';
 
 const MARK_LABEL: Record<Mark, string> = { ok: '◯', maybe: '△', ng: '✕' };
 const MARKS: Mark[] = ['ok', 'maybe', 'ng'];

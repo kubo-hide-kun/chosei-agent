@@ -5,7 +5,7 @@ import path from 'node:path';
 
 process.env.CHOSEI_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'chosei-test-'));
 
-import { addResponse, createEvent, getEvent } from '../src/lib/store';
+import { addResponse, createEvent, getEvent } from '../src/server/application/useCases/events';
 
 describe('store', () => {
   let eventId: string;

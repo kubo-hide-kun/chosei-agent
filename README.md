@@ -40,7 +40,7 @@ npm run dev                  # http://localhost:3000
 
 - **Next.js 15 (App Router) + TypeScript**
 - **SQLite** (better-sqlite3): `events` / `candidates` / `responses` / `answers`
-- **zod**: 入稿 JSON のバリデーション(`src/lib/schema.ts`)
+- **zod**: 入稿 JSON のバリデーション(`src/server/domain/event.ts`)
 - **AI エージェント**: システムプロンプトの正本は [docs/SYSTEM_PROMPT.md](docs/SYSTEM_PROMPT.md)
 - **開発規約**: [AGENTS.md](AGENTS.md)、領域の地図は [docs/steering/repo-map.md](docs/steering/repo-map.md)
 - **デザイン**: 独自デザイントークン(`src/app/globals.css` の CSS カスタムプロパティ)で統一

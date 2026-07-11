@@ -1,7 +1,7 @@
 # システムプロンプト
 
 chosei-agent の AI エージェント(候補日時抽出)が使用するシステムプロンプトの正本です。
-実装は `src/lib/agent/prompt.ts` にあり、本ドキュメントと同期させます。
+実装は `src/server/infrastructure/gateways/schedulePrompt.ts` にあり、本ドキュメントと同期させます。
 
 > **NOTE**: 本プロンプトは本リポジトリの設計原則 —「固有値(日付)を AI が推測で
 > 確定しない」「accuracy over alarm(解決できないものは捏造せずエラーに落とす)」—

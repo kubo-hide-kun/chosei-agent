@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
-import { responseSchema } from '@/lib/schema';
-import { addResponse, NotFoundError, ValidationError } from '@/lib/store';
+import { responseSchema } from '@/server/domain/event';
+import { addResponse } from '@/server/application/useCases/events';
+import { NotFoundError, ValidationError } from '@/server/repositories/eventRepository';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

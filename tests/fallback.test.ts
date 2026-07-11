@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractDates, fallbackParse } from '../src/lib/agent/fallback';
+import { extractDates, fallbackParse } from '../src/server/domain/scheduleText';
 
 // 2026-07-11 は土曜日
 const BASE = new Date(2026, 6, 11);

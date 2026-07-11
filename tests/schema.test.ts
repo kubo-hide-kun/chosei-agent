@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { eventImportSchema, normalizeCandidate } from '../src/lib/schema';
+import { eventImportSchema, normalizeCandidate } from '../src/server/domain/event';
 
 describe('eventImportSchema', () => {
   it('オブジェクト形式と文字列形式の混在を受け付ける', () => {

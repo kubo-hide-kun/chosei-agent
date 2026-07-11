@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
-import { eventImportSchema } from '@/lib/schema';
-import { createEvent } from '@/lib/store';
+import { eventImportSchema } from '@/server/domain/event';
+import { createEvent } from '@/server/application/useCases/events';
 
 export async function POST(req: NextRequest) {
   let body: unknown;

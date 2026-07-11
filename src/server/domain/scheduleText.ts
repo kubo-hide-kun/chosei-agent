@@ -1,4 +1,4 @@
-import type { EventImport } from '../schema';
+import type { EventImport } from '@/server/domain/event';
 
 /**
  * Claude API が使えない環境向けのルールベース抽出。

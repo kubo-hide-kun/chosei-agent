@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { parseScheduleText } from '@/lib/agent/parse';
+import { parseScheduleText } from '@/server/application/useCases/parseScheduleText';
 
 const requestSchema = z.object({
   text: z.string().min(1, 'text は必須です').max(4000),

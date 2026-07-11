@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getEvent } from '@/lib/store';
+import { getEvent } from '@/server/application/useCases/events';
 import EventView from './EventView';
 
 export const dynamic = 'force-dynamic';

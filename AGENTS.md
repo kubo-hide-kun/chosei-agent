@@ -8,7 +8,7 @@
 - まず [README.md](./README.md) を確認する
 - どの領域を触るかが決まったら、毎回 repo 全体を読み直さず [docs/steering/repo-map.md](./docs/steering/repo-map.md)(領域→入口の地図)から最短で入口に入る
 - 入稿 JSON の仕様は [docs/JSON_FORMAT.md](./docs/JSON_FORMAT.md) が正本
-- AI エージェント(候補日時抽出)のシステムプロンプトは [docs/SYSTEM_PROMPT.md](./docs/SYSTEM_PROMPT.md) が正本(実装 `src/lib/agent/prompt.ts` と必ず同期)
+- AI エージェント(候補日時抽出)のシステムプロンプトは [docs/SYSTEM_PROMPT.md](./docs/SYSTEM_PROMPT.md) が正本(実装 `src/server/infrastructure/gateways/schedulePrompt.ts` と必ず同期)
 - 何を調べるか迷う/障害調査では、調査手段を使う前に候補を最大 3 つに絞り、最小で効く一手から調べる(全体検索・全読み・全体テストに走らない)
 
 ## Workflow — 意図駆動・適応型・手戻り最小
@@ -25,7 +25,7 @@
 ## Mindset — 開発者としての姿勢
 
 - 好奇心:既存実装をまず分解して仕組みを理解する。小さく実験し、失敗から学ぶ
-- システム思考:1 つの変更が `src/app`(ルート)→ `src/lib`(ロジック)→ DB・テスト・ドキュメントへどう波及するかを俯瞰する
+- システム思考:1 つの変更が `src/app`(ルート)→ `src/server`(application / domain / repositories / infrastructure)→ DB・テスト・ドキュメントへどう波及するかを俯瞰する
 - 明確なコミュニケーション:着手前にタスク範囲と完了条件を明示する。固有値(日付・料金・URL・固有名詞)は AI が確定せず原典確認 or 依頼者確認
 - オーナーシップ:AI が生成したコードでも最終品質と結果に責任を持つ
 - ポリマス:技術的正しさに加え、ユーザー体験(回答しやすさ)と運用(イベント作成の手間)の二軸で判断する
@@ -39,10 +39,15 @@
 ## Architecture
 
 - `src/app/` は Route Handler と page のみ(薄く保つ)
-- 入稿 JSON のスキーマ・正規化は `src/lib/schema.ts`
-- 永続化は `src/lib/db.ts`(接続・DDL)と `src/lib/store.ts`(操作)
-- AI エージェントは `src/lib/agent/`(prompt / parse / fallback)
-- UI コンポーネントはページ配下に置き、スタイルはデザイントークン(`src/app/globals.css` の CSS カスタムプロパティ)経由で参照する。生の HEX 値を直接書かない
+- ビジネスロジックは `src/server/application/useCases` に置く
+- ドメインルール(スキーマ・正規化・ルールベース解析)は `src/server/domain` に置く
+- 永続化や外部保存の抽象(ポート)は `src/server/repositories` に置く
+- infrastructure は adapter 種別で揃える
+  - `src/server/infrastructure/repositories`: repository adapter 実装(SQLite)
+  - `src/server/infrastructure/gateways`: 外部 API gateway adapter 実装(Claude)
+  - `src/server/infrastructure/runtime`: 依存の合成点(composition root)
+- application はポートにのみ依存する。実装の解決は `infrastructure/runtime/container.ts` に集約(application からの infrastructure import はこの合成点のみ許可)
+- UI コンポーネントはページ配下に置き、`src/server/infrastructure/*` を直接 import しない。スタイルはデザイントークン(`src/app/globals.css` の CSS カスタムプロパティ)経由で参照する。生の HEX 値を直接書かない
 - 相対 import より `@/` エイリアスを優先する
 
 ## Harness
@@ -59,7 +64,7 @@
 
 - DoD = **要件の動作を保証するのに必要な確認が行われていること**。確認の範囲は変更の性質・影響・リスクに見合わせて適応的に決める(過剰確認も手戻り)
 - 変更した分岐と防御コードには対応テストを追加する
-- 入稿 JSON の形式を変えたら `docs/JSON_FORMAT.md` を、エージェントのプロンプトを変えたら `docs/SYSTEM_PROMPT.md` と `src/lib/agent/prompt.ts` の両方を同期する(正本のズレを作らない)
+- 入稿 JSON の形式を変えたら `docs/JSON_FORMAT.md` を、エージェントのプロンプトを変えたら `docs/SYSTEM_PROMPT.md` と `src/server/infrastructure/gateways/schedulePrompt.ts` の両方を同期する(正本のズレを作らない)
 - UI を作る / 変えたなら「UI を作ったら必須の確認」(崩れチェック + UX レビュー)を満たす。これは適応で省略できない
 - 「テストが通った」で閉じず、理解確認(なぜ / データの流れ / 失敗時挙動 / 戻し方)を満たす。説明できない点は捏造せず「未確認」として報告に残す
 - commit / push はユーザーが明示したときのみ。PR はユーザーが明示したときだけ作る
