@@ -21,3 +21,4 @@
 | [0006](./0006AbuseProtection.md) | 不正利用対策(合言葉・レートリミット・日次予算) | Accepted |
 | [0007](./0007RailwayHosting.md) | ホスティングを Railway(単一インスタンス + 永続ボリューム)にする | Accepted |
 | [0008](./0008StructuredLoggingAndAudit.md) | 構造化ログと監査イベント(stdout JSON + requestId) | Accepted |
+| [0009](./0009PiiLeakHardening.md) | 個人情報漏洩対策の強化(セキュリティ監査対応) | Accepted |

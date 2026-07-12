@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   consumeClaudeBudget,
+  getClientIp,
   rateLimit,
   resetClaudeBudgetForTest,
   verifyAccessKey,
@@ -90,5 +91,34 @@ describe('consumeClaudeBudget', () => {
   it('上限 0 以下・不正値は常に false(Claude を使わない)', () => {
     process.env.CHOSEI_AGENT_DAILY_LIMIT = '0';
     expect(consumeClaudeBudget(new Date('2026-07-11T10:00:00Z'))).toBe(false);
+  });
+});
+
+describe('getClientIp', () => {
+  it('x-forwarded-for は末尾(信頼できるプロキシが付けた実IP)を採用する', () => {
+    const headers = new Headers({ 'x-forwarded-for': 'spoofed1, spoofed2, 203.0.113.7' });
+    expect(getClientIp(headers)).toBe('203.0.113.7');
+  });
+
+  it('クライアントが偽装値を先頭に足してもレートリミットのキーが変わらない', () => {
+    const real = '203.0.113.7';
+    const a = new Headers({ 'x-forwarded-for': `1.1.1.1, ${real}` });
+    const b = new Headers({ 'x-forwarded-for': `2.2.2.2, ${real}` });
+    expect(getClientIp(a)).toBe(getClientIp(b));
+  });
+
+  it('x-forwarded-for が無ければ x-real-ip、両方無ければ unknown', () => {
+    expect(getClientIp(new Headers({ 'x-real-ip': '198.51.100.9' }))).toBe('198.51.100.9');
+    expect(getClientIp(new Headers())).toBe('unknown');
+  });
+
+  it('異常に長い値は切り詰める(ログ肥大・メモリ消費対策)', () => {
+    const headers = new Headers({ 'x-forwarded-for': 'a'.repeat(1000) });
+    expect(getClientIp(headers).length).toBeLessThanOrEqual(64);
+  });
+
+  it('空要素だけの x-forwarded-for は unknown ではなく x-real-ip へフォールバックする', () => {
+    const headers = new Headers({ 'x-forwarded-for': ' , ', 'x-real-ip': '198.51.100.9' });
+    expect(getClientIp(headers)).toBe('198.51.100.9');
   });
 });

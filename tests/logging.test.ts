@@ -57,6 +57,24 @@ describe('withApiLogging', () => {
     expect(typeof reqLine.durationMs).toBe('number');
   });
 
+  it('個人情報を含みうる API 応答に Cache-Control: private, no-store を付与する', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const handler = withApiLogging<unknown>('/api/test', async () =>
+      NextResponse.json({ name: '田中' }),
+    );
+    const res = await handler(new NextRequest('http://localhost/api/test'), {});
+    expect(res.headers.get('cache-control')).toBe('private, no-store');
+  });
+
+  it('ハンドラが明示した Cache-Control は上書きしない', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const handler = withApiLogging<unknown>('/api/test', async () =>
+      NextResponse.json({ ok: true }, { headers: { 'cache-control': 'public, max-age=60' } }),
+    );
+    const res = await handler(new NextRequest('http://localhost/api/test'), {});
+    expect(res.headers.get('cache-control')).toBe('public, max-age=60');
+  });
+
   it('未捕捉例外: スタックを応答に含めず、requestId 付きの 500 を返す', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const handler = withApiLogging<unknown>('/api/test', async () => {
@@ -67,6 +85,7 @@ describe('withApiLogging', () => {
     const body = await res.json();
     expect(body.requestId).toBe(res.headers.get('x-request-id'));
     expect(JSON.stringify(body)).not.toContain('boom');
+    expect(res.headers.get('cache-control')).toBe('private, no-store');
     const logged = JSON.parse(spy.mock.calls[0][0]);
     expect(logged).toMatchObject({ event: 'api.unhandled_error', message: 'boom' });
     expect(logged.requestId).toBe(body.requestId);

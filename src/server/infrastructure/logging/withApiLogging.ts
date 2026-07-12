@@ -23,6 +23,10 @@ export function withApiLogging<Ctx>(route: string, handler: ApiHandler<Ctx>) {
     try {
       const res = await handler(req, ctx, reqLog);
       res.headers.set('x-request-id', requestId);
+      // API 応答は個人情報(回答者名・コメント)を含みうるため、共有キャッシュへの保存を禁止する
+      if (!res.headers.has('cache-control')) {
+        res.headers.set('cache-control', 'private, no-store');
+      }
       reqLog.info('api.request', { ...base, status: res.status, durationMs: Date.now() - start });
       return res;
     } catch (err) {
@@ -34,7 +38,10 @@ export function withApiLogging<Ctx>(route: string, handler: ApiHandler<Ctx>) {
       });
       return NextResponse.json(
         { error: 'サーバーエラーが発生しました。時間をおいて再度お試しください。', requestId },
-        { status: 500, headers: { 'x-request-id': requestId } },
+        {
+          status: 500,
+          headers: { 'x-request-id': requestId, 'cache-control': 'private, no-store' },
+        },
       );
     }
   };
