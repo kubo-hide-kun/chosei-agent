@@ -23,6 +23,12 @@ export interface EventDetail {
 export interface EventRepository {
   createEvent(input: EventImport): { id: string };
   getEvent(id: string): EventDetail | null;
+  /**
+   * title・description・candidates を丸ごと置き換える。
+   * candidates は (date, start, end) が一致する既存候補の id を再利用して回答を保持し、
+   * 一致しない既存候補は削除する(紐づく回答も cascade で消える)。
+   */
+  updateEvent(id: string, input: EventImport): void;
   addResponse(eventId: string, input: ResponseInput): { id: string };
 }
 

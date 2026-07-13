@@ -97,6 +97,8 @@ export const RATE_LIMITS = {
   agent: { limit: 10, windowMs: 60_000 },
   /** イベント作成 */
   createEvent: { limit: 20, windowMs: 60_000 },
+  /** イベント編集 */
+  updateEvent: { limit: 20, windowMs: 60_000 },
   /** 出欠回答 */
   respond: { limit: 30, windowMs: 60_000 },
   /** イベント閲覧 API(名前・コメントを含む個人情報の一括取得を遅くする) */
