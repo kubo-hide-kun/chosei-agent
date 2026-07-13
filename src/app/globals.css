@@ -161,8 +161,15 @@ a {
   min-height: 160px;
   resize: vertical;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.875rem;
+  font-size: 1rem;
   line-height: 1.6;
+}
+
+/* JSON 用 textarea はデスクトップでのみ縮小(モバイルは iOS の自動ズームを防ぐため 16px を維持) */
+@media (min-width: 641px) {
+  .sp-textarea {
+    font-size: 0.875rem;
+  }
 }
 
 .sp-textarea--plain {
@@ -210,6 +217,10 @@ a {
   background: var(--color-hover-contained-button);
 }
 
+.sp-button--contained:active:not(:disabled) {
+  background: var(--color-hover-contained-button);
+}
+
 .sp-button--outlined {
   background: var(--color-surface-primary);
   color: var(--color-text-accent-primary);
@@ -217,6 +228,10 @@ a {
 }
 
 .sp-button--outlined:hover:not(:disabled) {
+  background: var(--color-hover-outlined-button);
+}
+
+.sp-button--outlined:active:not(:disabled) {
   background: var(--color-hover-outlined-button);
 }
 
@@ -253,6 +268,10 @@ a {
 .sp-tab:focus-visible {
   outline: 2px solid var(--color-focus-clarity);
   outline-offset: -2px;
+}
+
+.sp-tab:active {
+  background: var(--color-surface-secondary);
 }
 
 .sp-field {
@@ -322,6 +341,7 @@ a {
 
 .sp-table th[scope='row'] {
   text-align: left;
+  white-space: normal;
 }
 
 .sp-table .is-best {
@@ -331,6 +351,62 @@ a {
 .sp-table .is-best th[scope='row']::after {
   content: ' ★';
   color: var(--color-text-accent-primary);
+}
+
+/* 集計表は回答者が増えると横スクロールするため、候補日時列を左に固定して見失わないようにする */
+.sp-table--summary th[scope='row'] {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-surface-secondary);
+}
+
+.sp-table--summary .is-best th[scope='row'] {
+  background: var(--color-surface-accent-primary-light);
+}
+
+/* モバイルでは出欠入力を「候補日時 → ◯△✕」の縦積みカードにし、横スクロールなしでタップできるようにする */
+@media (max-width: 640px) {
+  .sp-table--answer,
+  .sp-table--answer tbody,
+  .sp-table--answer tr,
+  .sp-table--answer th,
+  .sp-table--answer td {
+    display: block;
+    width: 100%;
+  }
+
+  .sp-table--answer tr {
+    border: 1px solid var(--color-border-low-emphasis);
+    border-radius: var(--radius-m);
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+
+  .sp-table--answer th[scope='row'] {
+    border: none;
+    border-bottom: 1px solid var(--color-border-low-emphasis);
+    padding-bottom: 8px;
+  }
+
+  .sp-table--answer td {
+    border: none;
+    text-align: left;
+  }
+
+  .sp-table--answer .sp-radio-group {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .sp-table--answer .sp-radio-group span {
+    flex: 1;
+  }
+
+  .sp-table--answer .sp-radio-group label {
+    width: 100%;
+    border-radius: var(--radius-m);
+  }
 }
 
 .sp-table th.sp-day--sat {
@@ -360,7 +436,7 @@ a {
 
 .sp-radio-group {
   display: inline-flex;
-  gap: 4px;
+  gap: 8px;
 }
 
 .sp-radio-group input {
@@ -373,8 +449,8 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid var(--color-border-medium-emphasis);
   cursor: pointer;
@@ -514,7 +590,8 @@ a {
   appearance: none;
   background: none;
   border: none;
-  padding: 4px 6px;
+  padding: 10px 10px;
+  min-height: 44px;
   font-family: inherit;
   font-size: 0.8125rem;
   font-weight: 700;
@@ -524,7 +601,8 @@ a {
   white-space: nowrap;
 }
 
-.sp-textbtn:hover {
+.sp-textbtn:hover,
+.sp-textbtn:active {
   background: var(--color-hover-outlined-button);
   text-decoration: underline;
 }
@@ -573,7 +651,9 @@ a {
 
 .sp-key-field .sp-textbtn {
   position: absolute;
+  top: 50%;
   right: 6px;
+  transform: translateY(-50%);
 }
 
 .sp-count {
@@ -629,4 +709,29 @@ code.sp-code {
   border-radius: 4px;
   padding: 1px 6px;
   font-size: 0.8125rem;
+}
+
+.sp-submit-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sp-submit-progress {
+  font-size: 0.8125rem;
+  color: var(--color-text-medium-emphasis);
+}
+
+/* モバイルでは送信ボタンを画面下部に固定し、候補が多いイベントでもすぐ送信できるようにする */
+@media (max-width: 640px) {
+  .sp-submit-bar {
+    position: sticky;
+    bottom: 0;
+    background: var(--color-surface-primary);
+    border-top: 1px solid var(--color-border-low-emphasis);
+    margin: 16px -24px -24px;
+    padding: 12px 24px calc(12px + env(safe-area-inset-bottom));
+    justify-content: space-between;
+  }
 }
