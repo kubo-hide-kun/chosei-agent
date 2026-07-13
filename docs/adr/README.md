@@ -25,3 +25,4 @@
 | [0010](./0010OptInDiagnosticLogging.md) | 同意ベースの診断ログ(Claude JSON parse 失敗時のみ) | Accepted |
 | [0011](./0011EventEditing.md) | イベント編集機能の追加 | Accepted |
 | [0012](./0012ResponseCorrection.md) | 出欠回答の修正(同名再送信は上書き) | Accepted |
+| [0013](./0013NaturalLanguageEventEdit.md) | 自然文によるイベント編集(AI 編集エージェント) | Accepted |
