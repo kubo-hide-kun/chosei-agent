@@ -161,8 +161,15 @@ a {
   min-height: 160px;
   resize: vertical;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.875rem;
+  font-size: 1rem;
   line-height: 1.6;
+}
+
+/* JSON 用 textarea はデスクトップでのみ縮小(モバイルは iOS の自動ズームを防ぐため 16px を維持) */
+@media (min-width: 641px) {
+  .sp-textarea {
+    font-size: 0.875rem;
+  }
 }
 
 .sp-textarea--plain {
@@ -210,6 +217,10 @@ a {
   background: var(--color-hover-contained-button);
 }
 
+.sp-button--contained:active:not(:disabled) {
+  background: var(--color-hover-contained-button);
+}
+
 .sp-button--outlined {
   background: var(--color-surface-primary);
   color: var(--color-text-accent-primary);
@@ -217,6 +228,10 @@ a {
 }
 
 .sp-button--outlined:hover:not(:disabled) {
+  background: var(--color-hover-outlined-button);
+}
+
+.sp-button--outlined:active:not(:disabled) {
   background: var(--color-hover-outlined-button);
 }
 
@@ -253,6 +268,10 @@ a {
 .sp-tab:focus-visible {
   outline: 2px solid var(--color-focus-clarity);
   outline-offset: -2px;
+}
+
+.sp-tab:active {
+  background: var(--color-surface-secondary);
 }
 
 .sp-field {
@@ -301,6 +320,19 @@ a {
   overflow-x: auto;
 }
 
+/*
+ * position: sticky は最も近いスクロールコンテナが基準になる。.sp-table-wrap は
+ * overflow-x: auto により(CSS の仕様上)overflow-y も auto 扱いになるが、
+ * 高さが内容に合わせて伸びるため実際には縦にスクロールしない = ページ側のスクロールに
+ * 追従できず、ヘッダー行の sticky が効かない。集計表は縦にも長くなりうるため、
+ * 高さの上限を設けて自身の内部でスクロールさせることで、ヘッダー行・候補日時列の
+ * sticky を機能させる。
+ */
+.sp-table-wrap--summary {
+  max-height: min(60vh, 480px);
+  overflow-y: auto;
+}
+
 .sp-table {
   border-collapse: collapse;
   width: 100%;
@@ -322,6 +354,7 @@ a {
 
 .sp-table th[scope='row'] {
   text-align: left;
+  white-space: normal;
 }
 
 .sp-table .is-best {
@@ -331,6 +364,76 @@ a {
 .sp-table .is-best th[scope='row']::after {
   content: ' ★';
   color: var(--color-text-accent-primary);
+}
+
+/* 集計表は回答者が増えると横スクロールするため、候補日時列を左に固定して見失わないようにする。
+   --color-surface-secondary は半透明(rgba)のため sticky セルの背景に使うと下を
+   スクロールする内容が透けて重なって見える。不透明な --gray-5 を使い、確実に隠す。
+   ヘッダー行と行の高さを揃えないと重なって見えるため、ここだけ折り返しを止める
+   (候補ラベルは十分短いため、通常は問題にならない) */
+.sp-table--summary th[scope='row'] {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--gray-5);
+  white-space: nowrap;
+}
+
+.sp-table--summary .is-best th[scope='row'] {
+  background: var(--color-surface-accent-primary-light);
+}
+
+/* 候補が多いイベントでも縦スクロール中に見出し行を見失わないよう、ヘッダー行も固定する */
+.sp-table--summary thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--gray-5);
+}
+
+.sp-table--summary thead th:first-child {
+  left: 0;
+  z-index: 3;
+}
+
+/* モバイルでは出欠入力を「候補日時 + ◯△✕」を1行にまとめたコンパクトなカードにし、
+   縦スクロール量を抑えつつ横スクロールなしでタップできるようにする(候補が多いイベント向け) */
+@media (max-width: 640px) {
+  .sp-table--answer,
+  .sp-table--answer tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .sp-table--answer tr {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px 12px;
+    border: 1px solid var(--color-border-low-emphasis);
+    border-radius: var(--radius-m);
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+
+  .sp-table--answer th[scope='row'],
+  .sp-table--answer td {
+    display: block;
+    border: none;
+    padding: 0;
+    text-align: left;
+    white-space: normal;
+  }
+
+  .sp-table--answer th[scope='row'] {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .sp-table--answer td {
+    flex: 0 0 auto;
+  }
 }
 
 .sp-table th.sp-day--sat {
@@ -360,7 +463,7 @@ a {
 
 .sp-radio-group {
   display: inline-flex;
-  gap: 4px;
+  gap: 8px;
 }
 
 .sp-radio-group input {
@@ -373,8 +476,8 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid var(--color-border-medium-emphasis);
   cursor: pointer;
@@ -514,7 +617,8 @@ a {
   appearance: none;
   background: none;
   border: none;
-  padding: 4px 6px;
+  padding: 10px 10px;
+  min-height: 44px;
   font-family: inherit;
   font-size: 0.8125rem;
   font-weight: 700;
@@ -524,7 +628,8 @@ a {
   white-space: nowrap;
 }
 
-.sp-textbtn:hover {
+.sp-textbtn:hover,
+.sp-textbtn:active {
   background: var(--color-hover-outlined-button);
   text-decoration: underline;
 }
@@ -573,7 +678,9 @@ a {
 
 .sp-key-field .sp-textbtn {
   position: absolute;
+  top: 50%;
   right: 6px;
+  transform: translateY(-50%);
 }
 
 .sp-count {
@@ -629,4 +736,39 @@ code.sp-code {
   border-radius: 4px;
   padding: 1px 6px;
   font-size: 0.8125rem;
+}
+
+.sp-bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px 4px;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  color: var(--color-text-medium-emphasis);
+  margin-bottom: 8px;
+}
+
+.sp-submit-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sp-submit-progress {
+  font-size: 0.8125rem;
+  color: var(--color-text-medium-emphasis);
+}
+
+/* モバイルでは送信ボタンを画面下部に固定し、候補が多いイベントでもすぐ送信できるようにする */
+@media (max-width: 640px) {
+  .sp-submit-bar {
+    position: sticky;
+    bottom: 0;
+    background: var(--color-surface-primary);
+    border-top: 1px solid var(--color-border-low-emphasis);
+    margin: 16px -24px -24px;
+    padding: 12px 24px calc(12px + env(safe-area-inset-bottom));
+    justify-content: space-between;
+  }
 }

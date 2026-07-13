@@ -55,8 +55,11 @@ export default function EventView({ event }: { event: EventDetail }) {
   const [aiEditError, setAiEditError] = useState('');
   const [aiEditBusy, setAiEditBusy] = useState(false);
 
+  const [canShare, setCanShare] = useState(false);
+
   useEffect(() => {
     setShareUrl(`${window.location.origin}/events/${event.id}`);
+    setCanShare(typeof navigator.share === 'function');
   }, [event.id]);
 
   const editStatus = useMemo(() => checkJsonSyntax(editText), [editText]);
@@ -184,13 +187,24 @@ export default function EventView({ event }: { event: EventDetail }) {
     setAnswers({ ...matchedResponse.answers });
   }
 
+  // 候補が多いイベントで1件ずつタップする負担を減らすため、未回答の候補だけまとめて埋める(既に選んだ候補は変えない)
+  function fillUnanswered(mark: Mark) {
+    setAnswers((prev) => {
+      const next = { ...prev };
+      for (const c of event.candidates) {
+        if (!(c.id in next)) next[c.id] = mark;
+      }
+      return next;
+    });
+  }
+
   // 回答状況の表で名前をクリックすると、その人の回答をフォームに読み込んで編集できるようにする
   function selectRespondent(r: EventDetail['responses'][number]) {
     setName(r.name);
     setComment(r.comment);
     setAnswers({ ...r.answers });
-    document.getElementById('respondent-name')?.focus();
     document.getElementById('respondent-name')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('respondent-name')?.focus({ preventScroll: true });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -264,6 +278,14 @@ export default function EventView({ event }: { event: EventDetail }) {
       setTimeout(() => setCopied(false), 2000);
     } catch {
       /* クリップボード未対応環境では入力欄から手動コピーしてもらう */
+    }
+  }
+
+  async function shareUrlNative() {
+    try {
+      await navigator.share({ title: event.title, url: shareUrl });
+    } catch {
+      /* ユーザーが共有をキャンセルした場合などは何もしない */
     }
   }
 
@@ -407,9 +429,34 @@ export default function EventView({ event }: { event: EventDetail }) {
         )}
         <div className="sp-share">
           <input className="sp-input" value={shareUrl} readOnly aria-label="共有URL" />
+          {canShare && (
+            <button
+              type="button"
+              className={`sp-button ${justCreated ? 'sp-button--contained' : 'sp-button--outlined'}`}
+              onClick={() => void shareUrlNative()}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="18" cy="5" r="3" />
+                <circle cx="6" cy="12" r="3" />
+                <circle cx="18" cy="19" r="3" />
+                <path d="M8.6 13.5 15.4 17.5M15.4 6.5 8.6 10.5" />
+              </svg>
+              共有する
+            </button>
+          )}
           <button
             type="button"
-            className={`sp-button ${justCreated ? 'sp-button--contained' : 'sp-button--outlined'}`}
+            className={`sp-button ${justCreated && !canShare ? 'sp-button--contained' : 'sp-button--outlined'}`}
             onClick={copyShareUrl}
           >
             <svg
@@ -439,9 +486,10 @@ export default function EventView({ event }: { event: EventDetail }) {
         <p className="sp-help">
           ◯ = 参加できる / △ = 調整すれば参加できる / ✕ = 参加できない。
           ★ が付いた行は現時点の最有力候補です(◯ = 2 点、△ = 1 点で採点した最高得点の候補)。
+          {event.responses.length > 0 && ' 名前をタップすると、下の回答フォームにその人の回答を読み込んで編集できます。'}
         </p>
-        <div className="sp-table-wrap">
-          <table className="sp-table">
+        <div className="sp-table-wrap sp-table-wrap--summary">
+          <table className="sp-table sp-table--summary">
             <thead>
               <tr>
                 <th scope="col">候補日時</th>
@@ -449,12 +497,7 @@ export default function EventView({ event }: { event: EventDetail }) {
                 <th scope="col">△</th>
                 {event.responses.map((r) => (
                   <th scope="col" key={r.id}>
-                    <button
-                      type="button"
-                      className="sp-textbtn"
-                      onClick={() => selectRespondent(r)}
-                      title="クリックすると下の回答フォームにこの人の回答を読み込んで編集できます"
-                    >
+                    <button type="button" className="sp-textbtn" onClick={() => selectRespondent(r)}>
                       {r.name}
                     </button>
                   </th>
@@ -568,11 +611,14 @@ export default function EventView({ event }: { event: EventDetail }) {
               />
               AI の解析に失敗した場合、原因調査のため入力内容と AI の応答を運営のログに一時的に記録することに同意する
             </label>
-            <p className="sp-help">
-              通常は入力内容をログに残しません。同意した場合のみ、解析に失敗したときに限り、
-              上の入力文と AI の応答がサーバーのログ(運営者のみ閲覧可能)に記録されます。
-              任意項目です。チェックしなくても AI 解析・回答送信は利用できます。
-            </p>
+            <details className="sp-details">
+              <summary>この同意の詳細</summary>
+              <div className="sp-details-body">
+                通常は入力内容をログに残しません。同意した場合のみ、解析に失敗したときに限り、
+                上の入力文と AI の応答がサーバーのログ(運営者のみ閲覧可能)に記録されます。
+                任意項目です。チェックしなくても AI 解析・回答送信は利用できます。
+              </div>
+            </details>
           </div>
           <p className="sp-help">
             読み取り結果は下の表に反映されるだけで、まだ送信されません。内容を確認・修正してから「回答を送信」を押してください。
@@ -592,6 +638,8 @@ export default function EventView({ event }: { event: EventDetail }) {
               onChange={(e) => setName(e.target.value)}
               required
               maxLength={50}
+              autoComplete="name"
+              enterKeyHint="next"
             />
           </div>
           {matchedResponse && (
@@ -602,8 +650,24 @@ export default function EventView({ event }: { event: EventDetail }) {
               </button>
             </div>
           )}
+          {event.candidates.length > 5 && (
+            <div className="sp-bulk-actions">
+              <span>未回答の候補をまとめて:</span>
+              <button type="button" className="sp-textbtn" onClick={() => fillUnanswered('ok')}>
+                すべて ◯ にする
+              </button>
+              <button type="button" className="sp-textbtn" onClick={() => fillUnanswered('ng')}>
+                すべて ✕ にする
+              </button>
+              {Object.keys(answers).length > 0 && (
+                <button type="button" className="sp-textbtn" onClick={() => setAnswers({})}>
+                  リセット
+                </button>
+              )}
+            </div>
+          )}
           <div className="sp-table-wrap">
-            <table className="sp-table">
+            <table className="sp-table sp-table--answer">
               <tbody>
                 {event.candidates.map((c) => (
                   <tr key={c.id}>
@@ -663,13 +727,18 @@ export default function EventView({ event }: { event: EventDetail }) {
                 : '回答を送信しました。上の集計表に反映されています。ありがとうございました!'}
             </div>
           )}
-          <button
-            type="submit"
-            className="sp-button sp-button--contained"
-            disabled={busy || name.trim().length === 0 || Object.keys(answers).length === 0}
-          >
-            {busy ? '送信中…' : '回答を送信 →'}
-          </button>
+          <div className="sp-submit-bar">
+            <span className="sp-submit-progress">
+              {Object.keys(answers).length} / {event.candidates.length} 件選択済み
+            </span>
+            <button
+              type="submit"
+              className="sp-button sp-button--contained"
+              disabled={busy || name.trim().length === 0 || Object.keys(answers).length === 0}
+            >
+              {busy ? '送信中…' : '回答を送信 →'}
+            </button>
+          </div>
         </form>
       </section>
     </>

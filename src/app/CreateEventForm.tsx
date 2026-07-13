@@ -179,11 +179,14 @@ export default function CreateEventForm() {
               />
               AI の解析に失敗した場合、原因調査のため入力内容と AI の応答を運営のログに一時的に記録することに同意する
             </label>
-            <p className="sp-help">
-              通常は入力内容をログに残しません。同意した場合のみ、解析に失敗したときに限り、
-              上の入力文と AI の応答がサーバーのログ(運営者のみ閲覧可能)に記録されます。
-              任意項目です。チェックしなくても AI 解析・イベント作成は利用できます。
-            </p>
+            <details className="sp-details">
+              <summary>この同意の詳細</summary>
+              <div className="sp-details-body">
+                通常は入力内容をログに残しません。同意した場合のみ、解析に失敗したときに限り、
+                上の入力文と AI の応答がサーバーのログ(運営者のみ閲覧可能)に記録されます。
+                任意項目です。チェックしなくても AI 解析・イベント作成は利用できます。
+              </div>
+            </details>
           </div>
           <button
             type="button"
