@@ -367,13 +367,15 @@ a {
 }
 
 /* 集計表は回答者が増えると横スクロールするため、候補日時列を左に固定して見失わないようにする。
-   ヘッダー行(1行の高さ)とサイズを揃えないと、内部スクロール時に重なって見えるため
-   ここだけ折り返しを止める(候補ラベルは十分短いため、通常は問題にならない) */
+   --color-surface-secondary は半透明(rgba)のため sticky セルの背景に使うと下を
+   スクロールする内容が透けて重なって見える。不透明な --gray-5 を使い、確実に隠す。
+   ヘッダー行と行の高さを揃えないと重なって見えるため、ここだけ折り返しを止める
+   (候補ラベルは十分短いため、通常は問題にならない) */
 .sp-table--summary th[scope='row'] {
   position: sticky;
   left: 0;
   z-index: 1;
-  background: var(--color-surface-secondary);
+  background: var(--gray-5);
   white-space: nowrap;
 }
 
@@ -386,7 +388,7 @@ a {
   position: sticky;
   top: 0;
   z-index: 2;
-  background: var(--color-surface-secondary);
+  background: var(--gray-5);
 }
 
 .sp-table--summary thead th:first-child {
