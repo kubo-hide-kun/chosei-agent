@@ -16,6 +16,14 @@ export function getEvent(
   return repo.getEvent(id);
 }
 
+export function updateEvent(
+  id: string,
+  input: EventImport,
+  repo: EventRepository = getEventRepository(),
+): void {
+  repo.updateEvent(id, input);
+}
+
 export function addResponse(
   eventId: string,
   input: ResponseInput,

@@ -78,6 +78,60 @@ export class SqliteEventRepository implements EventRepository {
     return { id: eventId };
   }
 
+  updateEvent(id: string, input: EventImport): void {
+    const parsed = eventImportSchema.parse(input);
+    const exists = this.db.prepare('SELECT id FROM events WHERE id = ?').get(id);
+    if (!exists) throw new NotFoundError('イベントが見つかりません');
+
+    const existingCandidates = this.db
+      .prepare('SELECT id, date, start, end FROM candidates WHERE event_id = ?')
+      .all(id) as { id: string; date: string; start: string | null; end: string | null }[];
+    // (date, start, end) が一致する既存候補は id を再引き継ぎして回答を保持する
+    const candidateKey = (c: { date: string; start: string | null; end: string | null }) =>
+      `${c.date}|${c.start ?? ''}|${c.end ?? ''}`;
+    const reusableIdsByKey = new Map<string, string[]>();
+    for (const c of existingCandidates) {
+      const key = candidateKey(c);
+      const ids = reusableIdsByKey.get(key) ?? [];
+      ids.push(c.id);
+      reusableIdsByKey.set(key, ids);
+    }
+
+    const nextCandidates = parsed.candidates.map((raw) => normalizeCandidate(raw));
+    const keptIds = new Set<string>();
+    const resolvedIds = nextCandidates.map((c) => {
+      const key = candidateKey(c);
+      const pool = reusableIdsByKey.get(key);
+      const reusedId = pool?.shift();
+      if (reusedId) {
+        keptIds.add(reusedId);
+        return reusedId;
+      }
+      return nanoid(10);
+    });
+
+    const updateEventStmt = this.db.prepare(
+      'UPDATE events SET title = ?, description = ? WHERE id = ?',
+    );
+    const deleteCandidate = this.db.prepare('DELETE FROM candidates WHERE id = ?');
+    const upsertCandidate = this.db.prepare(`
+      INSERT INTO candidates (id, event_id, date, start, end, label, sort)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        date = excluded.date, start = excluded.start, end = excluded.end,
+        label = excluded.label, sort = excluded.sort
+    `);
+    this.db.transaction(() => {
+      updateEventStmt.run(parsed.title, parsed.description ?? '', id);
+      for (const c of existingCandidates) {
+        if (!keptIds.has(c.id)) deleteCandidate.run(c.id);
+      }
+      nextCandidates.forEach((c, i) => {
+        upsertCandidate.run(resolvedIds[i], id, c.date, c.start, c.end, c.label, i);
+      });
+    })();
+  }
+
   getEvent(id: string): EventDetail | null {
     const event = this.db
       .prepare('SELECT id, title, description, created_at AS createdAt FROM events WHERE id = ?')

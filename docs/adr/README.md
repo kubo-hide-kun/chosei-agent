@@ -23,3 +23,4 @@
 | [0008](./0008StructuredLoggingAndAudit.md) | 構造化ログと監査イベント(stdout JSON + requestId) | Accepted |
 | [0009](./0009PiiLeakHardening.md) | 個人情報漏洩対策の強化(セキュリティ監査対応) | Accepted |
 | [0010](./0010OptInDiagnosticLogging.md) | 同意ベースの診断ログ(Claude JSON parse 失敗時のみ) | Accepted |
+| [0011](./0011EventEditing.md) | イベント編集機能の追加 | Accepted |

@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import AccessKeyInput from './AccessKeyInput';
+import { checkJsonSyntax } from './jsonStatus';
 import { useAccessKey } from './useAccessKey';
 import { useDraft } from './useDraft';
 
@@ -32,19 +33,9 @@ export default function CreateEventForm() {
   const [busy, setBusy] = useState(false);
   const [allowDiagnosticLogging, setAllowDiagnosticLogging] = useState(false);
 
-  function checkJson(text: string): { state: 'empty' | 'valid' | 'invalid'; message: string } {
-    if (text.trim().length === 0) return { state: 'empty', message: '' };
-    try {
-      JSON.parse(text);
-      return { state: 'valid', message: '✓ JSON の構文は有効です' };
-    } catch (e) {
-      return { state: 'invalid', message: `JSON の構文エラー: ${(e as Error).message}` };
-    }
-  }
-
   // 入力中の JSON を即時チェックし、送信前に構文の OK / NG が分かるようにする
-  const jsonStatus = useMemo(() => checkJson(jsonText), [jsonText]);
-  const previewStatus = useMemo(() => checkJson(preview?.text ?? ''), [preview]);
+  const jsonStatus = useMemo(() => checkJsonSyntax(jsonText), [jsonText]);
+  const previewStatus = useMemo(() => checkJsonSyntax(preview?.text ?? ''), [preview]);
 
   function switchTab(next: Tab) {
     setTab(next);

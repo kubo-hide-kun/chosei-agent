@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { EventDetail } from '@/server/repositories/eventRepository';
 import type { Mark } from '@/server/domain/event';
 import AccessKeyInput from '../../AccessKeyInput';
+import { checkJsonSyntax } from '../../jsonStatus';
 import { useAccessKey } from '../../useAccessKey';
 
 const MARK_LABEL: Record<Mark, string> = { ok: '◯', maybe: '△', ng: '✕' };
@@ -31,10 +32,74 @@ export default function EventView({ event }: { event: EventDetail }) {
   const [aiBusy, setAiBusy] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [allowDiagnosticLogging, setAllowDiagnosticLogging] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editText, setEditText] = useState('');
+  const [editError, setEditError] = useState('');
+  const [editBusy, setEditBusy] = useState(false);
+  const [editSaved, setEditSaved] = useState(false);
 
   useEffect(() => {
     setShareUrl(`${window.location.origin}/events/${event.id}`);
   }, [event.id]);
+
+  const editStatus = useMemo(() => checkJsonSyntax(editText), [editText]);
+
+  function openEdit() {
+    setEditText(
+      JSON.stringify(
+        {
+          title: event.title,
+          description: event.description,
+          candidates: event.candidates.map((c) => ({
+            date: c.date,
+            ...(c.start ? { start: c.start } : {}),
+            ...(c.end ? { end: c.end } : {}),
+            label: c.label,
+          })),
+        },
+        null,
+        2,
+      ),
+    );
+    setEditError('');
+    setEditSaved(false);
+    setEditOpen(true);
+  }
+
+  async function handleEditSubmit() {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(editText);
+    } catch (e) {
+      setEditError(`JSON の構文が不正です: ${(e as Error).message}`);
+      return;
+    }
+    setEditBusy(true);
+    setEditError('');
+    setEditSaved(false);
+    try {
+      const res = await fetch(`/api/events/${event.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(parsed),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const detail = Array.isArray(data.issues)
+          ? '\n' + data.issues.map((i: { path: string; message: string }) => `- ${i.path}: ${i.message}`).join('\n')
+          : '';
+        setEditError((data.error ?? 'イベントの更新に失敗しました') + detail);
+        return;
+      }
+      setEditSaved(true);
+      setEditOpen(false);
+      router.refresh();
+    } catch {
+      setEditError('通信に失敗しました。時間をおいて再度お試しください。');
+    } finally {
+      setEditBusy(false);
+    }
+  }
 
   const scores = useMemo(() => {
     const map = new Map<string, { ok: number; maybe: number; score: number }>();
@@ -131,12 +196,76 @@ export default function EventView({ event }: { event: EventDetail }) {
         <Link href="/">← 新しいイベントを作成する</Link>
       </p>
       <section className="sp-card">
-        <h1 className="sp-heading-1">{event.title}</h1>
+        <div className="sp-label-row">
+          <h1 className="sp-heading-1">{event.title}</h1>
+          <button
+            type="button"
+            className="sp-textbtn"
+            onClick={() => (editOpen ? setEditOpen(false) : openEdit())}
+          >
+            {editOpen ? '編集をやめる' : 'イベント内容を編集'}
+          </button>
+        </div>
         {event.description && <p className="sp-text-sub">{event.description}</p>}
         {justCreated && (
           <div className="sp-note">
             イベントを作成しました。<strong>次にすること:</strong> 以下の URL
             をコピーして、参加者にチャットやメールで共有してください。
+          </div>
+        )}
+        {editSaved && !editOpen && (
+          <div className="sp-note" role="status">
+            変更を保存しました。
+          </div>
+        )}
+        {editOpen && (
+          <div className="sp-field">
+            <p className="sp-help">
+              タイトル・説明・候補日時を JSON で編集できます。この URL を知っている人は誰でも編集できます。
+              日付・開始・終了が変わらない候補はそのまま残り、既存の回答も保持されます。
+              候補を削除すると、その候補への回答は破棄されます。
+            </p>
+            <label className="sp-label" htmlFor="edit-json">
+              編集する内容(JSON)
+            </label>
+            <textarea
+              id="edit-json"
+              className="sp-textarea"
+              rows={12}
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              aria-describedby="edit-json-status"
+            />
+            <p
+              id="edit-json-status"
+              className={editStatus.state === 'valid' ? 'sp-valid' : 'sp-invalid'}
+              aria-live="polite"
+            >
+              {editStatus.message}
+            </p>
+            {editError && (
+              <p className="sp-error" role="alert">
+                {editError}
+              </p>
+            )}
+            <div className="sp-share">
+              <button
+                type="button"
+                className="sp-button sp-button--contained"
+                onClick={() => void handleEditSubmit()}
+                disabled={editBusy || editStatus.state !== 'valid'}
+              >
+                {editBusy ? '保存中…' : '変更を保存 →'}
+              </button>
+              <button
+                type="button"
+                className="sp-button sp-button--outlined"
+                onClick={() => setEditOpen(false)}
+                disabled={editBusy}
+              >
+                キャンセル
+              </button>
+            </div>
           </div>
         )}
         <div className="sp-share">
