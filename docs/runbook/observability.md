@@ -26,7 +26,7 @@
 | `api.request` | API リクエスト完了(全ルート共通) | route, method, status, durationMs, ip |
 | `api.unhandled_error` | 未捕捉例外(500)。スタックはログのみに残り応答には出ない | message, stack |
 | `agent.parse` | AI 解析の実行結果 | kind(schedule/answers), engine, ok, textLength, durationMs |
-| `agent.claude_fallback` | Claude 呼び出しが失敗しルールベースに縮退 | kind, message |
+| `agent.claude_fallback` | Claude 呼び出しが失敗しルールベースに縮退 | kind, message, rawLength(JSON parse 失敗時のみ), stopReason(同) |
 
 ### 監査イベント(`audit.*`, `audit: true`)
 
@@ -63,6 +63,19 @@
 1. `agent.parse` の `engine` 別件数で Claude / ルールベースの割合を見る
 2. `audit.agent.budget_exhausted` が出ていれば日次上限に到達している
    (上限変更は `CHOSEI_AGENT_DAILY_LIMIT`)
+
+### `agent.claude_fallback` が JSON parse エラーで多発するとき
+
+トークンは消費されている(=API 呼び出し自体は成功している)のに毎回 fallback する場合、
+`rawLength` / `stopReason` フィールドで切り分ける。
+
+- `stopReason` が `max_tokens` → 出力が途中で切れて不完全な JSON になっている。
+  `claudeScheduleGateway.ts` / `claudeAnswerGateway.ts` の `max_tokens` を引き上げる
+- `stopReason` が `end_turn` で `rawLength` が想定より大きい → モデルが JSON の前後に
+  説明文を付けている可能性が高い(`parseClaudeJson` は前後の説明文があっても JSON 本体を
+  抽出するが、JSON 自体が壊れていれば抽出できない)。プロンプト(`docs/SYSTEM_PROMPT.md`)の
+  出力形式指定を強めるか、モデル(`CHOSEI_AGENT_MODEL`)を見直す
+- `rawLength` が 0 → 応答に text ブロックが含まれていない(空応答)
 
 ## 実装の入口
 

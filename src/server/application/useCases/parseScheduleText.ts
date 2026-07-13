@@ -1,6 +1,7 @@
 import { eventImportSchema, type EventImport } from '@/server/domain/event';
 import { fallbackParse } from '@/server/domain/scheduleText';
 import { parseWithClaude } from '@/server/infrastructure/gateways/claudeScheduleGateway';
+import { ClaudeJsonParseError } from '@/server/infrastructure/gateways/claudeJson';
 import { log } from '@/server/infrastructure/logging/logger';
 
 export interface ParseResult {
@@ -28,6 +29,9 @@ export async function parseScheduleText(
       log('warn', 'agent.claude_fallback', {
         kind: 'schedule',
         message: err instanceof Error ? err.message : String(err),
+        ...(err instanceof ClaudeJsonParseError
+          ? { rawLength: err.rawLength, stopReason: err.stopReason ?? null }
+          : {}),
       });
     }
   }

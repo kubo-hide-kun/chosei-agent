@@ -4,6 +4,7 @@ import type { EventRepository } from '@/server/repositories/eventRepository';
 import { NotFoundError } from '@/server/repositories/eventRepository';
 import { getEventRepository } from '@/server/infrastructure/runtime/container';
 import { parseAnswersWithClaude } from '@/server/infrastructure/gateways/claudeAnswerGateway';
+import { ClaudeJsonParseError } from '@/server/infrastructure/gateways/claudeJson';
 import { log } from '@/server/infrastructure/logging/logger';
 
 export interface AnswerParseResult {
@@ -52,6 +53,9 @@ export async function parseAnswerText(
       log('warn', 'agent.claude_fallback', {
         kind: 'answers',
         message: err instanceof Error ? err.message : String(err),
+        ...(err instanceof ClaudeJsonParseError
+          ? { rawLength: err.rawLength, stopReason: err.stopReason ?? null }
+          : {}),
       });
     }
   }
