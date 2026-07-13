@@ -56,6 +56,7 @@ export class SqliteEventRepository implements EventRepository {
       );
       CREATE INDEX IF NOT EXISTS idx_candidates_event ON candidates(event_id);
       CREATE INDEX IF NOT EXISTS idx_responses_event ON responses(event_id);
+      CREATE INDEX IF NOT EXISTS idx_responses_event_name ON responses(event_id, name);
     `);
   }
 
@@ -175,7 +176,7 @@ export class SqliteEventRepository implements EventRepository {
     };
   }
 
-  addResponse(eventId: string, input: ResponseInput): { id: string } {
+  addResponse(eventId: string, input: ResponseInput): { id: string; updated: boolean } {
     const event = this.db.prepare('SELECT id FROM events WHERE id = ?').get(eventId);
     if (!event) throw new NotFoundError('イベントが見つかりません');
 
@@ -192,19 +193,32 @@ export class SqliteEventRepository implements EventRepository {
       }
     }
 
-    const responseId = nanoid(10);
+    // 同じ名前(前後の空白を除去して完全一致)の既存回答があれば新規行を作らず上書きする(ADR 0012)
+    const name = input.name.trim();
+    const existing = this.db
+      .prepare('SELECT id FROM responses WHERE event_id = ? AND name = ?')
+      .get(eventId, name) as { id: string } | undefined;
+    const responseId = existing?.id ?? nanoid(10);
+
     const insertResponse = this.db.prepare(
       'INSERT INTO responses (id, event_id, name, comment) VALUES (?, ?, ?, ?)',
     );
+    const updateResponse = this.db.prepare('UPDATE responses SET comment = ? WHERE id = ?');
+    const deleteAnswers = this.db.prepare('DELETE FROM answers WHERE response_id = ?');
     const insertAnswer = this.db.prepare(
       'INSERT INTO answers (response_id, candidate_id, mark) VALUES (?, ?, ?)',
     );
     this.db.transaction(() => {
-      insertResponse.run(responseId, eventId, input.name, input.comment ?? '');
+      if (existing) {
+        updateResponse.run(input.comment ?? '', existing.id);
+        deleteAnswers.run(existing.id);
+      } else {
+        insertResponse.run(responseId, eventId, name, input.comment ?? '');
+      }
       for (const [candidateId, mark] of Object.entries(input.answers)) {
         insertAnswer.run(responseId, candidateId, mark);
       }
     })();
-    return { id: responseId };
+    return { id: responseId, updated: Boolean(existing) };
   }
 }

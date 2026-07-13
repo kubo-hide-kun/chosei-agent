@@ -24,3 +24,4 @@
 | [0009](./0009PiiLeakHardening.md) | 個人情報漏洩対策の強化(セキュリティ監査対応) | Accepted |
 | [0010](./0010OptInDiagnosticLogging.md) | 同意ベースの診断ログ(Claude JSON parse 失敗時のみ) | Accepted |
 | [0011](./0011EventEditing.md) | イベント編集機能の追加 | Accepted |
+| [0012](./0012ResponseCorrection.md) | 出欠回答の修正(同名再送信は上書き) | Accepted |

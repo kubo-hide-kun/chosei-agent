@@ -28,6 +28,6 @@ export function addResponse(
   eventId: string,
   input: ResponseInput,
   repo: EventRepository = getEventRepository(),
-): { id: string } {
+): { id: string; updated: boolean } {
   return repo.addResponse(eventId, input);
 }

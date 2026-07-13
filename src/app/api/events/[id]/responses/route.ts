@@ -32,14 +32,14 @@ export const POST = withApiLogging<Ctx>(
       const input = responseSchema.parse(body);
       const result = addResponse(id, input);
       // PII 最小化: 名前・コメント内容はログに残さない
-      reqLog.audit('response.added', {
+      reqLog.audit(result.updated ? 'response.updated' : 'response.added', {
         eventId: id,
         responseId: result.id,
         answerCount: Object.keys(input.answers).length,
         hasComment: Boolean(input.comment),
         ip,
       });
-      return NextResponse.json(result, { status: 201 });
+      return NextResponse.json(result, { status: result.updated ? 200 : 201 });
     } catch (err) {
       if (err instanceof ZodError) {
         return NextResponse.json(

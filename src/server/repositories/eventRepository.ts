@@ -29,7 +29,11 @@ export interface EventRepository {
    * 一致しない既存候補は削除する(紐づく回答も cascade で消える)。
    */
   updateEvent(id: string, input: EventImport): void;
-  addResponse(eventId: string, input: ResponseInput): { id: string };
+  /**
+   * 回答を登録する。`(event_id, name)` が完全一致する既存回答があれば新規行を作らず上書きする
+   * (ADR 0012)。`updated` はその場合 true
+   */
+  addResponse(eventId: string, input: ResponseInput): { id: string; updated: boolean };
 }
 
 export class NotFoundError extends Error {}
