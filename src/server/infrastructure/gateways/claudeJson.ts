@@ -8,35 +8,72 @@
 export class ClaudeJsonParseError extends Error {
   /** 応答テキストの文字数(内容そのものは含まない診断用フィールド) */
   readonly rawLength: number;
+  /** 応答に `{`/`[` が一つも見つからなかった(JSON の痕跡が無い = 空応答や定型拒否文の可能性) */
+  readonly hasJsonStart: boolean;
+  /** 開始括弧に対応する閉じ括弧が見つからなかった(出力が途中で切れている可能性) */
+  readonly truncated: boolean;
+  /** `JSON.parse` の SyntaxError が報告した文字位置(内容は含まない) */
+  readonly errorPosition?: number;
   /** Claude API のレスポンスの stop_reason(呼び出し元が分かれば設定する) */
   stopReason?: string;
 
-  constructor(rawLength: number) {
+  constructor(params: {
+    rawLength: number;
+    hasJsonStart: boolean;
+    truncated: boolean;
+    errorPosition?: number;
+  }) {
     super('Claude 応答を JSON として解析できませんでした');
     this.name = 'ClaudeJsonParseError';
-    this.rawLength = rawLength;
+    this.rawLength = params.rawLength;
+    this.hasJsonStart = params.hasJsonStart;
+    this.truncated = params.truncated;
+    this.errorPosition = params.errorPosition;
   }
 }
 
 export function parseClaudeJson(text: string): unknown {
   const stripped = text.trim().replace(/^```(?:json)?\s*|\s*```$/g, '');
+  const extraction = extractJsonCandidate(stripped);
   try {
-    return JSON.parse(extractJsonCandidate(stripped));
-  } catch {
-    throw new ClaudeJsonParseError(text.length);
+    return JSON.parse(extraction.candidate);
+  } catch (err) {
+    throw new ClaudeJsonParseError({
+      rawLength: text.length,
+      hasJsonStart: extraction.hasJsonStart,
+      truncated: extraction.truncated,
+      errorPosition: extractErrorPosition(err),
+    });
   }
+}
+
+interface JsonExtraction {
+  candidate: string;
+  hasJsonStart: boolean;
+  truncated: boolean;
 }
 
 /**
  * モデルが指示に反して JSON の前後に説明文を付けた場合に備え、
  * 最初の `{`/`[` から対応する最後の `}`/`]` までを抜き出す。
  */
-function extractJsonCandidate(text: string): string {
+function extractJsonCandidate(text: string): JsonExtraction {
   const trimmed = text.trim();
   const first = trimmed.search(/[{[]/);
-  if (first === -1) return trimmed;
+  if (first === -1) {
+    return { candidate: trimmed, hasJsonStart: false, truncated: false };
+  }
   const closing = trimmed[first] === '{' ? '}' : ']';
   const last = trimmed.lastIndexOf(closing);
-  if (last === -1 || last < first) return trimmed;
-  return trimmed.slice(first, last + 1);
+  if (last === -1 || last < first) {
+    return { candidate: trimmed, hasJsonStart: true, truncated: true };
+  }
+  return { candidate: trimmed.slice(first, last + 1), hasJsonStart: true, truncated: false };
+}
+
+/** Node の SyntaxError メッセージから文字位置だけを抜き出す(内容は含まない) */
+function extractErrorPosition(err: unknown): number | undefined {
+  if (!(err instanceof Error)) return undefined;
+  const match = /position (\d+)/.exec(err.message);
+  return match ? Number(match[1]) : undefined;
 }

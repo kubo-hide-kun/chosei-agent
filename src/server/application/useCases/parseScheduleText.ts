@@ -30,7 +30,13 @@ export async function parseScheduleText(
         kind: 'schedule',
         message: err instanceof Error ? err.message : String(err),
         ...(err instanceof ClaudeJsonParseError
-          ? { rawLength: err.rawLength, stopReason: err.stopReason ?? null }
+          ? {
+              rawLength: err.rawLength,
+              stopReason: err.stopReason ?? null,
+              hasJsonStart: err.hasJsonStart,
+              truncated: err.truncated,
+              errorPosition: err.errorPosition ?? null,
+            }
           : {}),
       });
     }

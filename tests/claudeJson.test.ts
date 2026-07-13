@@ -30,6 +30,34 @@ describe('parseClaudeJson', () => {
     expect(message).not.toContain('田中');
     expect(message).not.toContain('090');
     expect(message).toBe('Claude 応答を JSON として解析できませんでした');
-    expect((caught as ClaudeJsonParseError).rawLength).toBeGreaterThan(0);
+    const parseErr = caught as ClaudeJsonParseError;
+    expect(parseErr.rawLength).toBeGreaterThan(0);
+    expect(parseErr.hasJsonStart).toBe(false);
+    expect(parseErr.truncated).toBe(false);
+  });
+
+  it('JSON の開始括弧はあるが閉じ括弧が無い場合、truncated として検出する', () => {
+    let caught: unknown;
+    try {
+      parseClaudeJson('{"title":"新年会","candidates":[{"date":"2026-08-01"');
+    } catch (err) {
+      caught = err;
+    }
+    const parseErr = caught as ClaudeJsonParseError;
+    expect(parseErr.hasJsonStart).toBe(true);
+    expect(parseErr.truncated).toBe(true);
+  });
+
+  it('壊れた JSON では errorPosition を SyntaxError から拾う', () => {
+    let caught: unknown;
+    try {
+      parseClaudeJson('{"title":"新年会",}');
+    } catch (err) {
+      caught = err;
+    }
+    const parseErr = caught as ClaudeJsonParseError;
+    expect(parseErr.hasJsonStart).toBe(true);
+    expect(parseErr.truncated).toBe(false);
+    expect(parseErr.errorPosition).toBeGreaterThan(0);
   });
 });
