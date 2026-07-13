@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { markSchema, type Mark } from '@/server/domain/event';
 import type { AnswerCandidate } from '@/server/domain/answerText';
 import { ANSWER_AGENT_SYSTEM_PROMPT } from '@/server/infrastructure/gateways/answerPrompt';
+import { formatBaseDate } from '@/server/infrastructure/gateways/baseDate';
 import { ClaudeJsonParseError, parseClaudeJson } from '@/server/infrastructure/gateways/claudeJson';
 
 export interface AnswerParseOutcome {
@@ -24,9 +25,10 @@ export async function parseAnswersWithClaude(
   text: string,
   candidates: AnswerCandidate[],
   apiKey: string,
+  now: Date = new Date(),
 ): Promise<AnswerParseOutcome> {
   const client = new Anthropic({ apiKey });
-  const candidateList = candidates.map((c) => ({ id: c.id, label: c.label }));
+  const candidateList = candidates.map((c) => ({ id: c.id, date: c.date, label: c.label }));
 
   const message = await client.messages.create({
     model: process.env.CHOSEI_AGENT_MODEL ?? 'claude-sonnet-5',
@@ -35,7 +37,7 @@ export async function parseAnswersWithClaude(
     messages: [
       {
         role: 'user',
-        content: `候補: ${JSON.stringify(candidateList)}\n回答: ${text}`,
+        content: `基準日: ${formatBaseDate(now)}\n候補: ${JSON.stringify(candidateList)}\n回答: ${text}`,
       },
     ],
   });
