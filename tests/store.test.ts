@@ -53,6 +53,69 @@ describe('store', () => {
     ).toThrow();
   });
 
+  it('同じ名前で再送信すると別行を追加せず既存回答を上書きする(ADR 0012)', () => {
+    const { id } = createEvent({
+      title: '上書きテスト',
+      description: '',
+      candidates: ['2026-09-01', '2026-09-02'],
+    });
+    const [c1, c2] = getEvent(id)!.candidates;
+
+    const first = addResponse(id, {
+      name: '佐藤',
+      comment: '最初のコメント',
+      answers: { [c1.id]: 'ok', [c2.id]: 'ng' },
+    });
+    expect(first.updated).toBe(false);
+
+    const second = addResponse(id, {
+      name: '佐藤',
+      comment: '直したコメント',
+      answers: { [c1.id]: 'maybe' },
+    });
+    expect(second.updated).toBe(true);
+    expect(second.id).toBe(first.id);
+
+    const after = getEvent(id)!;
+    expect(after.responses).toHaveLength(1);
+    expect(after.responses[0].comment).toBe('直したコメント');
+    expect(after.responses[0].answers[c1.id]).toBe('maybe');
+    // 上書き時に答え直さなかった候補は「回答なし」に戻る(送信内容で丸ごと置き換え)
+    expect(after.responses[0].answers[c2.id]).toBeUndefined();
+  });
+
+  it('前後の空白を除いた名前が一致すれば上書き対象と判定する(ADR 0012)', () => {
+    const { id } = createEvent({
+      title: '空白トリムテスト',
+      description: '',
+      candidates: ['2026-09-10'],
+    });
+    const [c1] = getEvent(id)!.candidates;
+
+    addResponse(id, { name: '鈴木', comment: '', answers: { [c1.id]: 'ok' } });
+    const result = addResponse(id, { name: '  鈴木  ', comment: '', answers: { [c1.id]: 'ng' } });
+
+    expect(result.updated).toBe(true);
+    const after = getEvent(id)!;
+    expect(after.responses).toHaveLength(1);
+    expect(after.responses[0].name).toBe('鈴木');
+  });
+
+  it('名前が異なれば別行として追加する', () => {
+    const { id } = createEvent({
+      title: '別名テスト',
+      description: '',
+      candidates: ['2026-09-15'],
+    });
+    const [c1] = getEvent(id)!.candidates;
+
+    addResponse(id, { name: 'A', comment: '', answers: { [c1.id]: 'ok' } });
+    const result = addResponse(id, { name: 'B', comment: '', answers: { [c1.id]: 'ng' } });
+
+    expect(result.updated).toBe(false);
+    expect(getEvent(id)!.responses).toHaveLength(2);
+  });
+
   it('存在しないイベントは null を返す', () => {
     expect(getEvent('nonexistent')).toBeNull();
   });

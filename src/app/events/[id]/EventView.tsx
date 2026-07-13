@@ -31,6 +31,7 @@ export default function EventView({ event }: { event: EventDetail }) {
   const [aiAnswerNote, setAiAnswerNote] = useState('');
   const [aiBusy, setAiBusy] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [lastSubmitWasUpdate, setLastSubmitWasUpdate] = useState(false);
   const [allowDiagnosticLogging, setAllowDiagnosticLogging] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editText, setEditText] = useState('');
@@ -117,6 +118,18 @@ export default function EventView({ event }: { event: EventDetail }) {
 
   const bestScore = Math.max(0, ...[...scores.values()].map((s) => s.score));
 
+  // 同じ名前(前後の空白を除去して完全一致)の既存回答があれば上書き対象として案内する(ADR 0012)
+  const matchedResponse = useMemo(
+    () => event.responses.find((r) => r.name === name.trim()) ?? null,
+    [event.responses, name],
+  );
+
+  function loadMatchedResponse() {
+    if (!matchedResponse) return;
+    setComment(matchedResponse.comment);
+    setAnswers({ ...matchedResponse.answers });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -139,6 +152,7 @@ export default function EventView({ event }: { event: EventDetail }) {
       setAiAnswerText('');
       setAiAnswerNote('');
       setSubmitted(true);
+      setLastSubmitWasUpdate(Boolean(data.updated));
       router.refresh();
     } catch {
       setError('通信に失敗しました。時間をおいて再度お試しください。');
@@ -367,7 +381,7 @@ export default function EventView({ event }: { event: EventDetail }) {
         <p className="sp-help">
           名前を入力し、候補ごとに ◯ / △ / ✕ を選んで送信してください。送信するとすぐ上の集計表に反映されます。
           選択しなかった候補は「回答なし(-)」として記録されます。
-          回答の修正は未対応のため、間違えた場合は幹事に連絡してください。
+          すでに回答した名前と同じ名前で再送信すると、別行を追加せずその回答を上書き修正します。
         </p>
 
         <div className="sp-ai-answer">
@@ -448,6 +462,14 @@ export default function EventView({ event }: { event: EventDetail }) {
               maxLength={50}
             />
           </div>
+          {matchedResponse && (
+            <div className="sp-note" role="status">
+              「{matchedResponse.name}」はすでに回答済みです。このまま送信すると内容が上書きされます。
+              <button type="button" className="sp-textbtn" onClick={loadMatchedResponse}>
+                登録済みの回答を読み込んで編集
+              </button>
+            </div>
+          )}
           <div className="sp-table-wrap">
             <table className="sp-table">
               <tbody>
@@ -502,7 +524,9 @@ export default function EventView({ event }: { event: EventDetail }) {
           )}
           {submitted && (
             <div className="sp-note" role="status">
-              回答を送信しました。上の集計表に反映されています。ありがとうございました!
+              {lastSubmitWasUpdate
+                ? '回答を修正しました。上の集計表に反映されています。'
+                : '回答を送信しました。上の集計表に反映されています。ありがとうございました!'}
             </div>
           )}
           <button

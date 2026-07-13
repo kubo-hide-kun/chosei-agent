@@ -106,7 +106,7 @@ export const markSchema = z.enum(['ok', 'maybe', 'ng']);
 export type Mark = z.infer<typeof markSchema>;
 
 export const responseSchema = z.object({
-  name: z.string().min(1, '名前は必須です').max(50),
+  name: z.string().trim().min(1, '名前は必須です').max(50),
   comment: z.string().max(500).optional().default(''),
   answers: z.record(z.string(), markSchema),
 });
