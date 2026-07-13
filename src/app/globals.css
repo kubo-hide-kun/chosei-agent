@@ -333,6 +333,15 @@ a {
   color: var(--color-text-accent-primary);
 }
 
+.sp-table th.sp-day--sat {
+  color: var(--color-focus-clarity);
+}
+
+.sp-table th.sp-day--sun,
+.sp-table th.sp-day--holiday {
+  color: var(--color-text-caution);
+}
+
 .sp-mark {
   font-weight: 700;
 }

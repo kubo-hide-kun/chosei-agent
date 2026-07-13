@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import holidayJp from '@holiday-jp/holiday_jp';
 import type { EventDetail } from '@/server/repositories/eventRepository';
 import type { Mark } from '@/server/domain/event';
 import AccessKeyInput from '../../AccessKeyInput';
@@ -11,6 +12,17 @@ import { useAccessKey } from '../../useAccessKey';
 
 const MARK_LABEL: Record<Mark, string> = { ok: '◯', maybe: '△', ng: '✕' };
 const MARKS: Mark[] = ['ok', 'maybe', 'ng'];
+
+/** 候補日の曜日・祝日から表の見出しを色分けするためのクラス名を返す(祝日 > 日曜 > 土曜の優先度) */
+function weekendClass(date: string): string | undefined {
+  const [y, m, d] = date.split('-').map(Number);
+  const jsDate = new Date(y, m - 1, d);
+  if (holidayJp.isHoliday(jsDate)) return 'sp-day--holiday';
+  const day = jsDate.getDay();
+  if (day === 0) return 'sp-day--sun';
+  if (day === 6) return 'sp-day--sat';
+  return undefined;
+}
 
 export default function EventView({ event }: { event: EventDetail }) {
   const router = useRouter();
@@ -455,7 +467,9 @@ export default function EventView({ event }: { event: EventDetail }) {
                 const isBest = event.responses.length > 0 && s.score === bestScore && bestScore > 0;
                 return (
                   <tr key={c.id} className={isBest ? 'is-best' : undefined}>
-                    <th scope="row">{c.label}</th>
+                    <th scope="row" className={weekendClass(c.date)}>
+                      {c.label}
+                    </th>
                     <td>{s.ok}</td>
                     <td>{s.maybe}</td>
                     {event.responses.map((r) => {
@@ -593,7 +607,9 @@ export default function EventView({ event }: { event: EventDetail }) {
               <tbody>
                 {event.candidates.map((c) => (
                   <tr key={c.id}>
-                    <th scope="row">{c.label}</th>
+                    <th scope="row" className={weekendClass(c.date)}>
+                      {c.label}
+                    </th>
                     <td>
                       <div
                         className="sp-radio-group"
