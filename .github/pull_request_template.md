@@ -1,5 +1,5 @@
 <!--
-  PR タイトル・本文の書き方は docs/workflow/gitmoji-pr-guidelines.md が正本です。
+  PR タイトル・本文の書き方は docs/runbook/pr-guidelines.md が正本です。
   タイトル形式: <type>(<scope>): <アウトカム> <gitmoji-shortcode>
   例: feat(auth): パスワードを忘れたユーザーが自力で再設定できるようにする :sparkles:
 -->
