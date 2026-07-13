@@ -32,7 +32,8 @@ export async function parseAnswersWithClaude(
 
   const message = await client.messages.create({
     model: process.env.CHOSEI_AGENT_MODEL ?? 'claude-sonnet-5',
-    max_tokens: 1024,
+    // 思考(thinking)トークンも max_tokens に含まれるため、テキスト出力が残るよう大きめに確保する
+    max_tokens: 16384,
     system: ANSWER_AGENT_SYSTEM_PROMPT,
     messages: [
       {
