@@ -14,6 +14,8 @@ import {
 
 const requestSchema = z.object({
   text: z.string().min(1, 'text は必須です').max(2000),
+  // ADR 0010: 解析失敗時に入力内容・Claude 応答をログに残すことへの明示同意
+  allowDiagnosticLogging: z.boolean().optional().default(false),
 });
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -50,7 +52,12 @@ export const POST = withApiLogging<Ctx>(
     }
     const start = Date.now();
     try {
-      const result = await parseAnswerText(id, parsed.data.text, allowClaude);
+      const result = await parseAnswerText(
+        id,
+        parsed.data.text,
+        allowClaude,
+        parsed.data.allowDiagnosticLogging,
+      );
       reqLog.info('agent.parse', {
         kind: 'answers',
         engine: result.engine,

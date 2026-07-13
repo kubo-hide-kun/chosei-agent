@@ -30,6 +30,7 @@ export default function EventView({ event }: { event: EventDetail }) {
   const [aiAnswerNote, setAiAnswerNote] = useState('');
   const [aiBusy, setAiBusy] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [allowDiagnosticLogging, setAllowDiagnosticLogging] = useState(false);
 
   useEffect(() => {
     setShareUrl(`${window.location.origin}/events/${event.id}`);
@@ -89,7 +90,7 @@ export default function EventView({ event }: { event: EventDetail }) {
       const res = await fetch(`/api/events/${event.id}/agent/parse-answers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-access-key': accessKey },
-        body: JSON.stringify({ text: aiAnswerText }),
+        body: JSON.stringify({ text: aiAnswerText, allowDiagnosticLogging }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -281,6 +282,22 @@ export default function EventView({ event }: { event: EventDetail }) {
             >
               {aiBusy ? '解析中…' : 'AI に読み取らせる'}
             </button>
+          </div>
+          <div className="sp-field sp-field--checkbox">
+            <label className="sp-checkbox-label" htmlFor="allow-diagnostic-logging-answer">
+              <input
+                id="allow-diagnostic-logging-answer"
+                type="checkbox"
+                checked={allowDiagnosticLogging}
+                onChange={(e) => setAllowDiagnosticLogging(e.target.checked)}
+              />
+              AI の解析に失敗した場合、原因調査のため入力内容と AI の応答を運営のログに一時的に記録することに同意する
+            </label>
+            <p className="sp-help">
+              通常は入力内容をログに残しません。同意した場合のみ、解析に失敗したときに限り、
+              上の入力文と AI の応答がサーバーのログ(運営者のみ閲覧可能)に記録されます。
+              任意項目です。チェックしなくても AI 解析・回答送信は利用できます。
+            </p>
           </div>
           <p className="sp-help">
             読み取り結果は下の表に反映されるだけで、まだ送信されません。内容を確認・修正してから「回答を送信」を押してください。

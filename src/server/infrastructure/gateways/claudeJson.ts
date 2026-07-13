@@ -4,6 +4,10 @@
  * Node の SyntaxError メッセージには入力の断片が含まれるため、そのまま投げると
  * ユーザーの自然文(名前など PII)由来のモデル出力がフォールバックログに流出する。
  * ここで捕捉し、内容を含まない固定メッセージに差し替える(ADR 0008: PII をログに残さない)。
+ *
+ * `rawResponse` は例外に保持するが、これ自体はログに出さない。呼び出し元が
+ * ユーザーの明示的な同意(ADR 0010)を確認した場合にのみ、呼び出し元の判断で
+ * ログへ含めてよい。
  */
 export class ClaudeJsonParseError extends Error {
   /** 応答テキストの文字数(内容そのものは含まない診断用フィールド) */
@@ -16,19 +20,22 @@ export class ClaudeJsonParseError extends Error {
   readonly errorPosition?: number;
   /** Claude API のレスポンスの stop_reason(呼び出し元が分かれば設定する) */
   stopReason?: string;
+  /** 応答の生テキスト(PII を含みうる)。ユーザー同意が無い限りログに出さないこと */
+  readonly rawResponse: string;
 
   constructor(params: {
-    rawLength: number;
+    rawResponse: string;
     hasJsonStart: boolean;
     truncated: boolean;
     errorPosition?: number;
   }) {
     super('Claude 応答を JSON として解析できませんでした');
     this.name = 'ClaudeJsonParseError';
-    this.rawLength = params.rawLength;
+    this.rawLength = params.rawResponse.length;
     this.hasJsonStart = params.hasJsonStart;
     this.truncated = params.truncated;
     this.errorPosition = params.errorPosition;
+    this.rawResponse = params.rawResponse;
   }
 }
 
@@ -39,7 +46,7 @@ export function parseClaudeJson(text: string): unknown {
     return JSON.parse(extraction.candidate);
   } catch (err) {
     throw new ClaudeJsonParseError({
-      rawLength: text.length,
+      rawResponse: text,
       hasJsonStart: extraction.hasJsonStart,
       truncated: extraction.truncated,
       errorPosition: extractErrorPosition(err),

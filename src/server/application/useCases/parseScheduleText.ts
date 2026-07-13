@@ -14,11 +14,15 @@ export interface ParseResult {
 /**
  * 自然文を入稿 JSON に変換する。
  * API キーがあれば Claude、失敗時・未設定時・予算超過時(allowClaude=false)はルールベースに落とす。
+ *
+ * `allowDiagnosticLogging` はユーザーがフォーム上でリスク説明を読んで同意した場合のみ true になる
+ * (ADR 0010)。true のときだけ、解析失敗時に Claude の生応答と入力文をログに含める。
  */
 export async function parseScheduleText(
   text: string,
   now = new Date(),
   allowClaude = true,
+  allowDiagnosticLogging = false,
 ): Promise<ParseResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (apiKey && allowClaude) {
@@ -36,6 +40,9 @@ export async function parseScheduleText(
               hasJsonStart: err.hasJsonStart,
               truncated: err.truncated,
               errorPosition: err.errorPosition ?? null,
+              ...(allowDiagnosticLogging
+                ? { rawResponse: err.rawResponse, inputText: text, diagnosticConsent: true }
+                : {}),
             }
           : {}),
       });

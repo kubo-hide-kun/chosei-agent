@@ -30,6 +30,7 @@ export default function CreateEventForm() {
   const [preview, setPreview] = useState<{ text: string; engine?: string } | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [allowDiagnosticLogging, setAllowDiagnosticLogging] = useState(false);
 
   function checkJson(text: string): { state: 'empty' | 'valid' | 'invalid'; message: string } {
     if (text.trim().length === 0) return { state: 'empty', message: '' };
@@ -59,7 +60,7 @@ export default function CreateEventForm() {
       const res = await fetch('/api/agent/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-access-key': accessKey },
-        body: JSON.stringify({ text: aiText }),
+        body: JSON.stringify({ text: aiText, allowDiagnosticLogging }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -175,6 +176,22 @@ export default function CreateEventForm() {
               「来週の◯曜」「平日」「週末」「7/24」「19時から21時」などの表現が使えます。
               「夜」は 19:00〜21:00、「昼」は 12:00〜13:00 と解釈されます。
               解析結果は作成前にプレビューで編集できます。入力途中の内容はこの端末に自動保存されます。
+            </p>
+          </div>
+          <div className="sp-field sp-field--checkbox">
+            <label className="sp-checkbox-label" htmlFor="allow-diagnostic-logging">
+              <input
+                id="allow-diagnostic-logging"
+                type="checkbox"
+                checked={allowDiagnosticLogging}
+                onChange={(e) => setAllowDiagnosticLogging(e.target.checked)}
+              />
+              AI の解析に失敗した場合、原因調査のため入力内容と AI の応答を運営のログに一時的に記録することに同意する
+            </label>
+            <p className="sp-help">
+              通常は入力内容をログに残しません。同意した場合のみ、解析に失敗したときに限り、
+              上の入力文と AI の応答がサーバーのログ(運営者のみ閲覧可能)に記録されます。
+              任意項目です。チェックしなくても AI 解析・イベント作成は利用できます。
             </p>
           </div>
           <button
