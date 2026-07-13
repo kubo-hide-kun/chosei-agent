@@ -172,6 +172,15 @@ export default function EventView({ event }: { event: EventDetail }) {
     setAnswers({ ...matchedResponse.answers });
   }
 
+  // 回答状況の表で名前をクリックすると、その人の回答をフォームに読み込んで編集できるようにする
+  function selectRespondent(r: EventDetail['responses'][number]) {
+    setName(r.name);
+    setComment(r.comment);
+    setAnswers({ ...r.answers });
+    document.getElementById('respondent-name')?.focus();
+    document.getElementById('respondent-name')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -428,7 +437,14 @@ export default function EventView({ event }: { event: EventDetail }) {
                 <th scope="col">△</th>
                 {event.responses.map((r) => (
                   <th scope="col" key={r.id}>
-                    {r.name}
+                    <button
+                      type="button"
+                      className="sp-textbtn"
+                      onClick={() => selectRespondent(r)}
+                      title="クリックすると下の回答フォームにこの人の回答を読み込んで編集できます"
+                    >
+                      {r.name}
+                    </button>
                   </th>
                 ))}
               </tr>
