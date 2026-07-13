@@ -653,17 +653,23 @@ export default function EventView({ event }: { event: EventDetail }) {
           {event.candidates.length > 5 && (
             <div className="sp-bulk-actions">
               <span>未回答の候補をまとめて:</span>
-              <button type="button" className="sp-textbtn" onClick={() => fillUnanswered('ok')}>
-                すべて ◯ にする
-              </button>
-              <button type="button" className="sp-textbtn" onClick={() => fillUnanswered('ng')}>
-                すべて ✕ にする
-              </button>
-              {Object.keys(answers).length > 0 && (
-                <button type="button" className="sp-textbtn" onClick={() => setAnswers({})}>
-                  リセット
-                </button>
-              )}
+              <div className="sp-bulk-actions-buttons">
+                {MARKS.map((mark) => (
+                  <button
+                    key={mark}
+                    type="button"
+                    className="sp-textbtn"
+                    onClick={() => fillUnanswered(mark)}
+                  >
+                    すべて {MARK_LABEL[mark]} にする
+                  </button>
+                ))}
+                {Object.keys(answers).length > 0 && (
+                  <button type="button" className="sp-textbtn" onClick={() => setAnswers({})}>
+                    リセット
+                  </button>
+                )}
+              </div>
             </div>
           )}
           <div className="sp-table-wrap">

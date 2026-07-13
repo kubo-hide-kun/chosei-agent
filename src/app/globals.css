@@ -740,12 +740,20 @@ code.sp-code {
 
 .sp-bulk-actions {
   display: flex;
-  align-items: center;
-  gap: 4px 4px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   font-size: 0.8125rem;
   color: var(--color-text-medium-emphasis);
   margin-bottom: 8px;
+}
+
+.sp-bulk-actions-buttons {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 4px;
+  margin-left: -10px;
 }
 
 .sp-submit-bar {
