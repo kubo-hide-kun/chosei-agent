@@ -24,7 +24,7 @@ export async function parseWithClaude(
 
   const message = await client.messages.create({
     model: process.env.CHOSEI_AGENT_MODEL ?? 'claude-sonnet-5',
-    max_tokens: 2048,
+    max_tokens: 8192,
     system: SCHEDULE_AGENT_SYSTEM_PROMPT,
     messages: [{ role: 'user', content: `基準日: ${baseDate}\n${text}` }],
   });
