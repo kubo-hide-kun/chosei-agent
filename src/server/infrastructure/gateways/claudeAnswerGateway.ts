@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { markSchema, type Mark } from '@/server/domain/event';
 import type { AnswerCandidate } from '@/server/domain/answerText';
 import { ANSWER_AGENT_SYSTEM_PROMPT } from '@/server/infrastructure/gateways/answerPrompt';
-import { parseClaudeJson } from '@/server/infrastructure/gateways/claudeJson';
+import { ClaudeJsonParseError, parseClaudeJson } from '@/server/infrastructure/gateways/claudeJson';
 
 export interface AnswerParseOutcome {
   ok: boolean;
@@ -45,7 +45,13 @@ export async function parseAnswersWithClaude(
     .map((block) => block.text)
     .join('');
 
-  const parsed = parseClaudeJson(raw);
+  let parsed: unknown;
+  try {
+    parsed = parseClaudeJson(raw);
+  } catch (err) {
+    if (err instanceof ClaudeJsonParseError) err.stopReason = message.stop_reason ?? undefined;
+    throw err;
+  }
   if (parsed && typeof parsed === 'object' && 'error' in parsed) {
     return { ok: false, error: String(parsed.error) };
   }

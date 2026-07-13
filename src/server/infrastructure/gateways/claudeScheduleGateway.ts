@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { eventImportSchema, type EventImport } from '@/server/domain/event';
 import { SCHEDULE_AGENT_SYSTEM_PROMPT } from '@/server/infrastructure/gateways/schedulePrompt';
-import { parseClaudeJson } from '@/server/infrastructure/gateways/claudeJson';
+import { ClaudeJsonParseError, parseClaudeJson } from '@/server/infrastructure/gateways/claudeJson';
 
 export interface ScheduleParseOutcome {
   ok: boolean;
@@ -34,7 +34,13 @@ export async function parseWithClaude(
     .map((block) => block.text)
     .join('');
 
-  const parsed = parseClaudeJson(raw);
+  let parsed: unknown;
+  try {
+    parsed = parseClaudeJson(raw);
+  } catch (err) {
+    if (err instanceof ClaudeJsonParseError) err.stopReason = message.stop_reason ?? undefined;
+    throw err;
+  }
   if (parsed && typeof parsed === 'object' && 'error' in parsed) {
     return { ok: false, error: String(parsed.error) };
   }

@@ -26,7 +26,7 @@
 | `api.request` | API リクエスト完了(全ルート共通) | route, method, status, durationMs, ip |
 | `api.unhandled_error` | 未捕捉例外(500)。スタックはログのみに残り応答には出ない | message, stack |
 | `agent.parse` | AI 解析の実行結果 | kind(schedule/answers), engine, ok, textLength, durationMs |
-| `agent.claude_fallback` | Claude 呼び出しが失敗しルールベースに縮退 | kind, message |
+| `agent.claude_fallback` | Claude 呼び出しが失敗しルールベースに縮退 | kind, message, rawLength/stopReason/hasJsonStart/truncated/errorPosition(JSON parse 失敗時のみ)。ユーザー同意時のみ `inputText`/`rawResponse`/`diagnosticConsent`(下記) |
 
 ### 監査イベント(`audit.*`, `audit: true`)
 
@@ -42,6 +42,12 @@
 
 **名前・コメント本文・自然文入力の内容はログに残さない**(ID・件数・文字数のみ)。
 ログ出力を追加するときもこの原則を守る(正本: `src/server/infrastructure/logging/logger.ts` のヘッダコメント)。
+
+**例外**: ユーザーがフォーム上のチェックボックス(「AI の解析に失敗した場合、原因調査のため
+入力内容と AI の応答を運営のログに一時的に記録することに同意する」)で明示同意し、かつ
+解析が実際に失敗した場合のみ、`agent.claude_fallback` に `inputText`(入力文そのもの)・
+`rawResponse`(Claude の生応答)・`diagnosticConsent: true` が記録される([ADR 0010](../adr/0010OptInDiagnosticLogging.md))。
+同意していない場合(既定)は従来どおり内容を含まない。
 
 ## 調査手順
 
@@ -63,6 +69,21 @@
 1. `agent.parse` の `engine` 別件数で Claude / ルールベースの割合を見る
 2. `audit.agent.budget_exhausted` が出ていれば日次上限に到達している
    (上限変更は `CHOSEI_AGENT_DAILY_LIMIT`)
+
+### `agent.claude_fallback` が JSON parse エラーで多発するとき
+
+トークンは消費されている(=API 呼び出し自体は成功している)のに毎回 fallback する場合、
+以下のフィールドで切り分ける(いずれも応答の内容そのものは含まない診断用の値)。
+
+| 状態 | 意味 | 対応 |
+|------|------|------|
+| `hasJsonStart: false` | 応答に `{`/`[` が一つも無い(空応答・定型拒否文など) | `rawLength` が 0 なら空応答。`stopReason` も確認 |
+| `truncated: true` | `{`/`[` はあるが対応する閉じ括弧が無い | 出力が途中で切れている。`stopReason` が `max_tokens` ならほぼ確定 → `claudeScheduleGateway.ts` / `claudeAnswerGateway.ts` の `max_tokens` を引き上げる |
+| `hasJsonStart: true` かつ `truncated: false` だが parse 失敗 | 括弧の対応は取れているが JSON 文法として壊れている(カンマ余分・引用符不足など) | `errorPosition`(壊れた文字位置)を見てモデルの癖を推測。プロンプト(`docs/SYSTEM_PROMPT.md`)の出力形式指定を強めるか `CHOSEI_AGENT_MODEL` を見直す |
+| `stopReason` が `max_tokens` | 生成が途中で打ち切られた | `max_tokens` を引き上げる(上表と併せて確認) |
+
+`diagnosticConsent: true` が付いている行は、ユーザーが同意した上で `inputText` / `rawResponse` を
+記録している。実際の入力文・Claude 応答をそのまま読めるので、上記の推測を待たずに直接原因を確認できる。
 
 ## 実装の入口
 

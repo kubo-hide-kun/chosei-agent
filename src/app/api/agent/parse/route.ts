@@ -13,6 +13,8 @@ import {
 
 const requestSchema = z.object({
   text: z.string().min(1, 'text は必須です').max(4000),
+  // ADR 0010: 解析失敗時に入力内容・Claude 応答をログに残すことへの明示同意
+  allowDiagnosticLogging: z.boolean().optional().default(false),
 });
 
 export const POST = withApiLogging<unknown>('/api/agent/parse', async (req, _ctx, reqLog) => {
@@ -43,7 +45,12 @@ export const POST = withApiLogging<unknown>('/api/agent/parse', async (req, _ctx
     reqLog.audit('agent.budget_exhausted', { route: '/api/agent/parse', ip });
   }
   const start = Date.now();
-  const result = await parseScheduleText(parsed.data.text, new Date(), allowClaude);
+  const result = await parseScheduleText(
+    parsed.data.text,
+    new Date(),
+    allowClaude,
+    parsed.data.allowDiagnosticLogging,
+  );
   // PII 最小化: 入力本文はログに残さず長さのみ記録する
   reqLog.info('agent.parse', {
     kind: 'schedule',

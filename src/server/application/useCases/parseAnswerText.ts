@@ -4,6 +4,7 @@ import type { EventRepository } from '@/server/repositories/eventRepository';
 import { NotFoundError } from '@/server/repositories/eventRepository';
 import { getEventRepository } from '@/server/infrastructure/runtime/container';
 import { parseAnswersWithClaude } from '@/server/infrastructure/gateways/claudeAnswerGateway';
+import { ClaudeJsonParseError } from '@/server/infrastructure/gateways/claudeJson';
 import { log } from '@/server/infrastructure/logging/logger';
 
 export interface AnswerParseResult {
@@ -19,11 +20,15 @@ export interface AnswerParseResult {
  * 出欠回答の自然文を候補ごとの ◯/△/✕ に変換する。
  * API キーがあれば Claude、失敗時・未設定時・予算超過時(allowClaude=false)はルールベースに落とす。
  * 候補一覧に存在しない ID は結果から除外する。
+ *
+ * `allowDiagnosticLogging` はユーザーがフォーム上でリスク説明を読んで同意した場合のみ true になる
+ * (ADR 0010)。true のときだけ、解析失敗時に Claude の生応答と入力文をログに含める。
  */
 export async function parseAnswerText(
   eventId: string,
   text: string,
   allowClaude = true,
+  allowDiagnosticLogging = false,
   repo: EventRepository = getEventRepository(),
 ): Promise<AnswerParseResult> {
   const event = repo.getEvent(eventId);
@@ -52,6 +57,18 @@ export async function parseAnswerText(
       log('warn', 'agent.claude_fallback', {
         kind: 'answers',
         message: err instanceof Error ? err.message : String(err),
+        ...(err instanceof ClaudeJsonParseError
+          ? {
+              rawLength: err.rawLength,
+              stopReason: err.stopReason ?? null,
+              hasJsonStart: err.hasJsonStart,
+              truncated: err.truncated,
+              errorPosition: err.errorPosition ?? null,
+              ...(allowDiagnosticLogging
+                ? { rawResponse: err.rawResponse, inputText: text, diagnosticConsent: true }
+                : {}),
+            }
+          : {}),
       });
     }
   }
