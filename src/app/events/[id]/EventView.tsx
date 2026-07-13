@@ -187,6 +187,17 @@ export default function EventView({ event }: { event: EventDetail }) {
     setAnswers({ ...matchedResponse.answers });
   }
 
+  // 候補が多いイベントで1件ずつタップする負担を減らすため、未回答の候補だけまとめて埋める(既に選んだ候補は変えない)
+  function fillUnanswered(mark: Mark) {
+    setAnswers((prev) => {
+      const next = { ...prev };
+      for (const c of event.candidates) {
+        if (!(c.id in next)) next[c.id] = mark;
+      }
+      return next;
+    });
+  }
+
   // 回答状況の表で名前をクリックすると、その人の回答をフォームに読み込んで編集できるようにする
   function selectRespondent(r: EventDetail['responses'][number]) {
     setName(r.name);
@@ -477,7 +488,7 @@ export default function EventView({ event }: { event: EventDetail }) {
           ★ が付いた行は現時点の最有力候補です(◯ = 2 点、△ = 1 点で採点した最高得点の候補)。
           {event.responses.length > 0 && ' 名前をタップすると、下の回答フォームにその人の回答を読み込んで編集できます。'}
         </p>
-        <div className="sp-table-wrap">
+        <div className="sp-table-wrap sp-table-wrap--summary">
           <table className="sp-table sp-table--summary">
             <thead>
               <tr>
@@ -637,6 +648,22 @@ export default function EventView({ event }: { event: EventDetail }) {
               <button type="button" className="sp-textbtn" onClick={loadMatchedResponse}>
                 登録済みの回答を読み込んで編集
               </button>
+            </div>
+          )}
+          {event.candidates.length > 5 && (
+            <div className="sp-bulk-actions">
+              <span>未回答の候補をまとめて:</span>
+              <button type="button" className="sp-textbtn" onClick={() => fillUnanswered('ok')}>
+                すべて ◯ にする
+              </button>
+              <button type="button" className="sp-textbtn" onClick={() => fillUnanswered('ng')}>
+                すべて ✕ にする
+              </button>
+              {Object.keys(answers).length > 0 && (
+                <button type="button" className="sp-textbtn" onClick={() => setAnswers({})}>
+                  リセット
+                </button>
+              )}
             </div>
           )}
           <div className="sp-table-wrap">

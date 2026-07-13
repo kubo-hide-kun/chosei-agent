@@ -320,6 +320,19 @@ a {
   overflow-x: auto;
 }
 
+/*
+ * position: sticky は最も近いスクロールコンテナが基準になる。.sp-table-wrap は
+ * overflow-x: auto により(CSS の仕様上)overflow-y も auto 扱いになるが、
+ * 高さが内容に合わせて伸びるため実際には縦にスクロールしない = ページ側のスクロールに
+ * 追従できず、ヘッダー行の sticky が効かない。集計表は縦にも長くなりうるため、
+ * 高さの上限を設けて自身の内部でスクロールさせることで、ヘッダー行・候補日時列の
+ * sticky を機能させる。
+ */
+.sp-table-wrap--summary {
+  max-height: min(60vh, 480px);
+  overflow-y: auto;
+}
+
 .sp-table {
   border-collapse: collapse;
   width: 100%;
@@ -353,59 +366,71 @@ a {
   color: var(--color-text-accent-primary);
 }
 
-/* 集計表は回答者が増えると横スクロールするため、候補日時列を左に固定して見失わないようにする */
+/* 集計表は回答者が増えると横スクロールするため、候補日時列を左に固定して見失わないようにする。
+   ヘッダー行(1行の高さ)とサイズを揃えないと、内部スクロール時に重なって見えるため
+   ここだけ折り返しを止める(候補ラベルは十分短いため、通常は問題にならない) */
 .sp-table--summary th[scope='row'] {
   position: sticky;
   left: 0;
   z-index: 1;
   background: var(--color-surface-secondary);
+  white-space: nowrap;
 }
 
 .sp-table--summary .is-best th[scope='row'] {
   background: var(--color-surface-accent-primary-light);
 }
 
-/* モバイルでは出欠入力を「候補日時 → ◯△✕」の縦積みカードにし、横スクロールなしでタップできるようにする */
+/* 候補が多いイベントでも縦スクロール中に見出し行を見失わないよう、ヘッダー行も固定する */
+.sp-table--summary thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--color-surface-secondary);
+}
+
+.sp-table--summary thead th:first-child {
+  left: 0;
+  z-index: 3;
+}
+
+/* モバイルでは出欠入力を「候補日時 + ◯△✕」を1行にまとめたコンパクトなカードにし、
+   縦スクロール量を抑えつつ横スクロールなしでタップできるようにする(候補が多いイベント向け) */
 @media (max-width: 640px) {
   .sp-table--answer,
-  .sp-table--answer tbody,
-  .sp-table--answer tr,
-  .sp-table--answer th,
-  .sp-table--answer td {
+  .sp-table--answer tbody {
     display: block;
     width: 100%;
   }
 
   .sp-table--answer tr {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px 12px;
     border: 1px solid var(--color-border-low-emphasis);
     border-radius: var(--radius-m);
+    padding: 10px 12px;
     margin-bottom: 8px;
-    overflow: hidden;
+  }
+
+  .sp-table--answer th[scope='row'],
+  .sp-table--answer td {
+    display: block;
+    border: none;
+    padding: 0;
+    text-align: left;
+    white-space: normal;
   }
 
   .sp-table--answer th[scope='row'] {
-    border: none;
-    border-bottom: 1px solid var(--color-border-low-emphasis);
-    padding-bottom: 8px;
+    flex: 0 1 auto;
+    min-width: 0;
   }
 
   .sp-table--answer td {
-    border: none;
-    text-align: left;
-  }
-
-  .sp-table--answer .sp-radio-group {
-    width: 100%;
-    gap: 8px;
-  }
-
-  .sp-table--answer .sp-radio-group span {
-    flex: 1;
-  }
-
-  .sp-table--answer .sp-radio-group label {
-    width: 100%;
-    border-radius: var(--radius-m);
+    flex: 0 0 auto;
   }
 }
 
@@ -709,6 +734,16 @@ code.sp-code {
   border-radius: 4px;
   padding: 1px 6px;
   font-size: 0.8125rem;
+}
+
+.sp-bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px 4px;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  color: var(--color-text-medium-emphasis);
+  margin-bottom: 8px;
 }
 
 .sp-submit-bar {
