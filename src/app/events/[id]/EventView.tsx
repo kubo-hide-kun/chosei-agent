@@ -38,6 +38,10 @@ export default function EventView({ event }: { event: EventDetail }) {
   const [editError, setEditError] = useState('');
   const [editBusy, setEditBusy] = useState(false);
   const [editSaved, setEditSaved] = useState(false);
+  const [aiEditText, setAiEditText] = useState('');
+  const [aiEditNote, setAiEditNote] = useState('');
+  const [aiEditError, setAiEditError] = useState('');
+  const [aiEditBusy, setAiEditBusy] = useState(false);
 
   useEffect(() => {
     setShareUrl(`${window.location.origin}/events/${event.id}`);
@@ -64,7 +68,45 @@ export default function EventView({ event }: { event: EventDetail }) {
     );
     setEditError('');
     setEditSaved(false);
+    setAiEditText('');
+    setAiEditNote('');
+    setAiEditError('');
     setEditOpen(true);
+  }
+
+  async function handleAiEdit() {
+    let current: unknown;
+    try {
+      current = JSON.parse(editText);
+    } catch (e) {
+      setAiEditError(`JSON の構文が不正です: ${(e as Error).message}`);
+      return;
+    }
+    setAiEditBusy(true);
+    setAiEditError('');
+    setAiEditNote('');
+    try {
+      const res = await fetch(`/api/events/${event.id}/agent/parse-edit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-access-key': accessKey },
+        body: JSON.stringify({
+          currentEvent: current,
+          instruction: aiEditText,
+          allowDiagnosticLogging,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAiEditError(data.error ?? '変更の解析に失敗しました');
+        return;
+      }
+      setEditText(JSON.stringify(data.event, null, 2));
+      setAiEditNote('AI が変更内容を反映しました。内容を確認してから「変更を保存」を押してください。');
+    } catch {
+      setAiEditError('通信に失敗しました。時間をおいて再度お試しください。');
+    } finally {
+      setAiEditBusy(false);
+    }
   }
 
   async function handleEditSubmit() {
@@ -239,6 +281,66 @@ export default function EventView({ event }: { event: EventDetail }) {
               日付・開始・終了が変わらない候補はそのまま残り、既存の回答も保持されます。
               候補を削除すると、その候補への回答は破棄されます。
             </p>
+            <div className="sp-ai-answer">
+              <div className="sp-label-row">
+                <label className="sp-label" htmlFor="ai-edit-text">
+                  自然文で変更を指示(AI が下の JSON を更新)
+                </label>
+                <button
+                  type="button"
+                  className="sp-textbtn"
+                  onClick={() => setAiEditText('7/23 の 19時から21時 も候補に追加して')}
+                >
+                  例文を入れる
+                </button>
+              </div>
+              <textarea
+                id="ai-edit-text"
+                className="sp-textarea sp-textarea--plain"
+                rows={2}
+                placeholder="例: 7/23 の 19時から21時 も候補に追加して。タイトルは「新年会2026」に変えて"
+                value={aiEditText}
+                onChange={(e) => setAiEditText(e.target.value)}
+              />
+              <div className="sp-ai-answer-controls">
+                <AccessKeyInput
+                  id="edit-access-key"
+                  value={accessKey}
+                  onChange={setAccessKey}
+                  placeholder="合言葉(設定されている場合)"
+                  ariaLabel="合言葉(アクセスキー)"
+                />
+                <button
+                  type="button"
+                  className="sp-button sp-button--outlined"
+                  onClick={() => void handleAiEdit()}
+                  disabled={aiEditBusy || aiEditText.trim().length === 0 || editStatus.state !== 'valid'}
+                >
+                  {aiEditBusy ? '解析中…' : 'AI に反映させる'}
+                </button>
+              </div>
+              <p className="sp-help">
+                下の JSON(現在の内容)を基準に、指示した変更だけを反映した内容に置き換えます。
+                まだ保存はされません。内容を確認してから「変更を保存」を押してください。
+              </p>
+              <div className="sp-field sp-field--checkbox">
+                <label className="sp-checkbox-label" htmlFor="allow-diagnostic-logging-edit">
+                  <input
+                    id="allow-diagnostic-logging-edit"
+                    type="checkbox"
+                    checked={allowDiagnosticLogging}
+                    onChange={(e) => setAllowDiagnosticLogging(e.target.checked)}
+                  />
+                  AI の解析に失敗した場合、原因調査のため入力内容と AI の応答を運営のログに一時的に記録することに同意する
+                </label>
+              </div>
+              {aiEditNote && <div className="sp-note">{aiEditNote}</div>}
+              {aiEditError && (
+                <p className="sp-error" role="alert">
+                  {aiEditError}
+                </p>
+              )}
+            </div>
             <label className="sp-label" htmlFor="edit-json">
               編集する内容(JSON)
             </label>
