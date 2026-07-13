@@ -22,7 +22,8 @@ export async function editEventWithClaude(
 
   const message = await client.messages.create({
     model: process.env.CHOSEI_AGENT_MODEL ?? 'claude-sonnet-5',
-    max_tokens: 8192,
+    // 思考(thinking)トークンも max_tokens に含まれるため、テキスト出力が残るよう大きめに確保する
+    max_tokens: 16384,
     system: EVENT_EDIT_AGENT_SYSTEM_PROMPT,
     messages: [
       {
